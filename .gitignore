@@ -1,2 +1,4 @@
 target
-
+install-folder
+*-deploy.sh
+.idea

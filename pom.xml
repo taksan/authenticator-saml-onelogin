@@ -76,6 +76,24 @@
       <scope>provided</scope>
       <version>2.5</version>
     </dependency>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>4.13.2</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.xwiki.commons</groupId>
+      <artifactId>xwiki-commons-tool-test-component</artifactId>
+      <version>${commons.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.xwiki.platform</groupId>
+      <artifactId>xwiki-platform-test-docker</artifactId>
+      <version>${commons.version}</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
   <dependencyManagement>
     <dependencies>
@@ -156,4 +174,7 @@
       <url>https://maven.xwiki.org/externals/</url>
     </repository>
   </repositories>
+  <properties>
+    <commons.version>13.3</commons.version>
+  </properties>
 </project>

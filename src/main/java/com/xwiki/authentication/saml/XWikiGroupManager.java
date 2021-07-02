@@ -17,15 +17,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class XWikiGroupUtils {
-    private static final Logger LOG = LoggerFactory.getLogger(XWikiGroupUtils.class);
+public class XWikiGroupManager {
+    private static final Logger LOG = LoggerFactory.getLogger(XWikiGroupManager.class);
     private static final String XWIKI_GROUP_MEMBERFIELD = "member";
 
     private static final EntityReference GROUP_PARENT = new EntityReference("XWikiGroups", EntityType.DOCUMENT,
             new EntityReference(XWiki.SYSTEM_SPACE, EntityType.SPACE));
     private final DocumentReferenceResolver<String> groupResolver;
 
-    public XWikiGroupUtils(DocumentReferenceResolver<String> groupResolver) {
+    public XWikiGroupManager(DocumentReferenceResolver<String> groupResolver) {
         this.groupResolver = groupResolver;
     }
 
@@ -72,6 +72,7 @@ public class XWikiGroupUtils {
             LOG.debug("Finished adding user [{}] to xwiki group [{}]", xwikiUserName, groupName);
         } catch (Exception e) {
             LOG.error("Failed to add a user [{}] to a group [{}]", xwikiUserName, groupName, e);
+            throw new IllegalStateException(e);
         }
     }
 
