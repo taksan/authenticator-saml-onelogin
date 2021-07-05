@@ -140,12 +140,12 @@ public class SamlAuthenticator {
 
     private DocumentReference findOrCreateUser(XWikiContext context, Auth auth) throws XWikiException, IOException {
         final XWikiRequest request = context.getRequest();
-        final Map<String, String> attributes = new HashMap<>();
+        final Map<String, String> samlAttributes = new HashMap<>();
 
         try {
             LOG.debug("Reading authentication response");
             auth.getAttributesName().forEach(attributeName ->
-                    attributes.put(attributeName, String.join(",", auth.getAttributes().get(attributeName))));
+                    samlAttributes.put(attributeName, String.join(",", auth.getAttributes().get(attributeName))));
 
         } catch (Exception e1) {
             LOG.error("Failed reading authentication response", e1);
@@ -153,14 +153,14 @@ public class SamlAuthenticator {
         }
 
         // let's map the data
-        final Map<String, String> userData = getExtendedInformation(attributes);
+        final Map<String, String> xwikiAttributes = mapToXwikiAttributes(samlAttributes);
         final String nameID = auth.getNameId();
         if (LOG.isDebugEnabled()) {
             LOG.debug("SAML ID is [{}]", nameID);
-            LOG.debug("SAML attributes are [{}]", attributes);
-            LOG.debug("SAML user data are [{}]", userData);
+            LOG.debug("SAML samlAttributes are [{}]", samlAttributes);
+            LOG.debug("SAML user data are [{}]", xwikiAttributes);
         }
-        final DocumentReference userReference = getLocalUsername(nameID, userData, context);
+        final DocumentReference userReference = getLocalUsername(nameID, xwikiAttributes, context);
         if (userReference == null)
             return null;
 
@@ -176,16 +176,16 @@ public class SamlAuthenticator {
             final XWiki xwiki = context.getWiki();
             // test if user already exists
             if (xwiki.exists(userReference, context))
-                syncUserFields(context, userData, userReference);
+                syncUserFields(context, xwikiAttributes, userReference);
             else
-            if (!createUser(context, userData, nameID, userReference)) {
+            if (!createUser(context, xwikiAttributes, nameID, userReference)) {
                 LOG.error("Failed to create user [{}]", userReference);
                 return null;
             }
         } finally {
             context.setWikiId(database);
         }
-        syncUserGroups(context, attributes, userReference, userDoc);
+        syncUserGroups(context, samlAttributes, userReference, userDoc);
 
         // Mark in the current session that we have authenticated the user
         LOG.debug("Setting authentication in session for user [{}]", userReference);
@@ -242,16 +242,16 @@ public class SamlAuthenticator {
         }
     }
 
-    private boolean createUser(XWikiContext context, Map<String, String> userData, String nameID, DocumentReference userReference) throws XWikiException {
+    private boolean createUser(XWikiContext context, Map<String, String> xwikiAttributes, String nameID, DocumentReference userReference) throws XWikiException {
         LOG.info("Will create new user [{}]", userReference);
 
         // create user
-        userData.put("active", "1");
+        xwikiAttributes.put("active", "1");
 
         String content = "{{include document=\"XWiki.XWikiUserSheet\"/}}";
         Syntax syntax = Syntax.XWIKI_2_1;
 
-        int result = context.getWiki().createUser(userReference.getName(), userData, PROFILE_PARENT,
+        int result = context.getWiki().createUser(userReference.getName(), xwikiAttributes, PROFILE_PARENT,
                 content, syntax, "edit", context);
         if (result < 0) {
             LOG.error("Failed to create user [{}] with code [{}]", userReference, result);
@@ -270,7 +270,7 @@ public class SamlAuthenticator {
         return true;
     }
 
-    private DocumentReference getLocalUsername(String nameID, Map<String, String> userData, XWikiContext context)
+    private DocumentReference getLocalUsername(String nameID, Map<String, String> xwikiAttributes, XWikiContext context)
             throws XWikiException
     {
         final String sql = "select distinct obj.name from BaseObject as obj, StringProperty as nameidprop "
@@ -283,7 +283,7 @@ public class SamlAuthenticator {
         if (list.size() == 0) {
             // User does not exist. Let's generate a unique page name
             LOG.debug("Did not find XWiki User. Generating it.");
-            String userName = generateXWikiUsername(userData);
+            String userName = generateXWikiUsername(xwikiAttributes);
             if (userName.equals(""))
                 throw new XWikiException(
                         "Could not generate a username for user " + nameID,
@@ -307,11 +307,11 @@ public class SamlAuthenticator {
 
 
 
-    private Map<String, String> getExtendedInformation(Map<String, String> data)
+    private Map<String, String> mapToXwikiAttributes(Map<String, String> samlAttributes)
     {
         final Map<String, String> extInfos = new HashMap<>();
         for (Map.Entry<String, String> entry : getFieldMapping().entrySet()) {
-            String dataValue = data.get(entry.getKey());
+            String dataValue = samlAttributes.get(entry.getKey());
 
             if (dataValue != null)
                 extInfos.put(entry.getValue(), dataValue);
