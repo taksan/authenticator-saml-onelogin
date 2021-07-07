@@ -8,7 +8,6 @@ import com.xpn.xwiki.XWikiContext;
 import com.xpn.xwiki.XWikiException;
 import com.xpn.xwiki.doc.XWikiDocument;
 import com.xpn.xwiki.objects.BaseObject;
-import com.xpn.xwiki.objects.StringProperty;
 import com.xpn.xwiki.objects.classes.BaseClass;
 import com.xpn.xwiki.objects.classes.StringClass;
 import com.xpn.xwiki.store.XWikiStoreInterface;
@@ -37,7 +36,8 @@ import java.util.function.Consumer;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -108,29 +108,21 @@ public class SamlAuthenticatorTest {
     }
     @Test
     public void whenTheRequestHasNotBeenTriggeredByASamlResponseAndUserIsntLoggedIn_ShouldStartSamlAuthentication() throws XWikiException, IOException, SettingsException {
-//        given()
-//            .hasNoSamlResponse()
-//            .userIsAnonymoiys()
-//            .whenAuthenticationIsAttempted()
-//            .then()
-//            .shouldRedirectToIdentityProvider()
-//            })
-//            .authenticatedUser("ArthurDent");
-
-        when(request.getRequestURL()).thenReturn(new StringBuffer("https://happy"));
-
-        final XWikiUser xWikiUser = subject.checkAuth(context, () -> null);
-        assertNull(xWikiUser);
-        Mockito.verify(samlAuth).login("https://happy");
+        given()
+            .userIsAnonymous()
+            .currentRequestUrlIs("https://happy")
+        .whenAuthenticationIsVerified()
+        .then()
+            .shouldRedirectToIdentityProviderAndThenReturnTo("https://happy");
     }
 
     @Test
     public void whenTheRequestHasNotBeenTriggeredByASamlResponseAndUserIsLoggedIn_ShouldDelegateToDefaultAuthHandler() throws XWikiException {
-        when(request.getCookie("username")).thenReturn(mock(Cookie.class));
-
-        XWikiUser loggedWikiUser = mock(XWikiUser.class);
-        final XWikiUser xWikiUser = subject.checkAuth(context, () -> loggedWikiUser);
-        assertEquals(loggedWikiUser, xWikiUser);
+        given()
+            .userIsLogged("ArthurDent")
+        .whenAuthenticationIsVerified()
+        .then()
+            .authenticatedUserIs("ArthurDent");
     }
 
     @Test
@@ -161,154 +153,119 @@ public class SamlAuthenticatorTest {
     @Test
     public void whenSamlAuthPresentAndSamlAcceptsAuthenticationAndUserExists_ShouldReturnExistingUser() throws Exception {
         given()
-            .identityProvider()
-                .hasAuthenticationData(user -> {
-                    user.id = "arthur.dent@dontpanic.com";
-                    user.firstName="Arthur";
-                    user.lastName = "Dent";
-                })
-            .defaultGroupForNewUsers("UserGroup")
-            .xwiki(users -> {
-                users.userExists("ArthurDent");
+            .isIdentityProviderAuthentication(user -> {
+                user.id = "arthur.dent@dontpanic.com";
+                user.firstName="Arthur";
+                user.lastName = "Dent";
             })
-        .whenAuthenticationIsPerformed()
+            .defaultGroupForNewUsers("UserGroup")
+            .xwiki(users ->
+                users.userExists("ArthurDent")
+            )
+        .whenAuthenticationIsVerified()
         .then()
-            .samlLoginHasBeenProcessed()
-            .xwiki(users -> {
+            .samlAuthenticationHasBeenProcessed()
+            .xwiki(users ->
                 users.user("ArthurDent")
                      .hasBeenSaved()
                      .isInGroups("UserGroup")
                         .attributes()
                             .firstName("Arthur")
                             .lastName("Dent")
-                            .email("arthur.dent@dontpanic.com");
-            })
+                            .email("arthur.dent@dontpanic.com")
+            )
             .authenticatedUser("ArthurDent");
     }
 
     @Test
     public void whenSamlAuthPresentAndSamlAcceptsAuthenticationAndUserDoesntExist_ShouldCreateNewUser() throws Exception {
         given()
-            .identityProvider()
-                .hasAuthenticationData(user -> {
-                    user.id = "arthur.dent@dontpanic.com";
-                    user.firstName="Arthur";
-                    user.lastName = "Dent";
-                })
+            .isIdentityProviderAuthentication(user -> {
+                user.id = "arthur.dent@dontpanic.com";
+                user.firstName="Arthur";
+                user.lastName = "Dent";
+            })
             .defaultGroupForNewUsers("UserGroup")
-            .xwiki(users -> {
-                users.noUsersExist();
-            })
-        .whenAuthenticationIsPerformed()
+            .xwiki(users ->
+                users.noUsersExist()
+            )
+        .whenAuthenticationIsVerified()
         .then()
-            .samlLoginHasBeenProcessed()    
-            .xwiki(users -> {
+            .samlAuthenticationHasBeenProcessed()
+            .xwiki(users ->
                 users.user("ArthurDent")
-                        .hasBeenSaved()
-                        .isInGroups("UserGroup")
-                        .attributes()
-                            .firstName("Arthur")
-                            .lastName("Dent")
-                            .email("arthur.dent@dontpanic.com");
-
-            })
+                     .hasBeenSaved()
+                     .isInGroups("UserGroup")
+                     .attributes()
+                        .firstName("Arthur")
+                        .lastName("Dent")
+                        .email("arthur.dent@dontpanic.com")
+            )
             .authenticatedUser("ArthurDent");
     }
 
     @Test
     public void whenUserExistsAndThereAreGroupsInSamlResponse_ShouldAddUserToSamlGroups() throws Exception {
         given()
-            .identityProvider()
-                .hasAuthenticationData(user -> {
-                    user.id = "arthur.dent@dontpanic.com";
-                    user.firstName="Arthur";
-                    user.lastName = "Dent";
-                    user.newGroup = "samlGroup";
+            .isIdentityProviderAuthentication(user -> {
+                user.id = "arthur.dent@dontpanic.com";
+                user.firstName="Arthur";
+                user.lastName = "Dent";
+                user.newGroup = "samlGroup";
 
-                })
-            .xwiki(users -> {
-                users.userExists("ArthurDent");
             })
-       .whenAuthenticationIsPerformed()
+            .xwiki(users ->
+                users.userExists("ArthurDent")
+            )
+       .whenAuthenticationIsVerified()
        .then()
-           .samlLoginHasBeenProcessed()
-           .xwiki(users -> {
+           .samlAuthenticationHasBeenProcessed()
+           .xwiki(users ->
                 users.user("ArthurDent")
-                     .isInGroups("samlGroup");
-            });
+                     .isInGroups("samlGroup")
+            );
     }
 
-    /*usuario existe existente:
-    está em grupos que nao veio veio no SAML*/
     @Test
     public void whenUserExistsAndUserHasGroupsAndThereArentGroupsInSamlResponse_ShouldRemoveUserFromGroups() throws Exception {
         given()
-            .identityProvider()
-            .hasAuthenticationData(user -> {
+            .isIdentityProviderAuthentication(user -> {
                 user.id = "arthur.dent@dontpanic.com";
                 user.firstName="Arthur";
                 user.lastName = "Dent";
             })
-            .xwiki(users -> {
+            .xwiki(users ->
                 users.userExists("ArthurDent")
-                     .userHasGroup("samlGroup");
-            })
-        .whenAuthenticationIsPerformed()
+                     .userHasGroup("samlGroup")
+            )
+        .whenAuthenticationIsVerified()
         .then()
-            .samlLoginHasBeenProcessed()
-            .xwiki(users -> {
+            .samlAuthenticationHasBeenProcessed()
+            .xwiki(users ->
                 users.user("ArthurDent")
-                     .isntInGroups("samlGroup");
-            });
+                     .isntInGroups("samlGroup")
+            );
     }
 
-    /*usuario nao existente:
-        nao esta em algum grupo que veio do SAML*/
     @Test
     public void whenUserDoesntExistsAndUserHasNoGroupsAndThereAreGroupsInSamlResponse_ShouldCreateUserAndAddUserInSamlGroups() throws Exception {
         given()
-            .identityProvider()
-            .hasAuthenticationData(user -> {
+            .isIdentityProviderAuthentication(user -> {
                 user.id = "arthur.dent@dontpanic.com";
                 user.firstName="Arthur";
                 user.lastName = "Dent";
                 user.newGroup = "samlGroup";
             })
-            .xwiki(users -> {
-                users.noUsersExist();
-            })
-        .whenAuthenticationIsPerformed()
-        .then()
-            .samlLoginHasBeenProcessed()
-            .xwiki(users -> {
-                users.user("ArthurDent")
-                     .isInGroups("samlGroup");
-            });
-    }
-
-    /*usuario nao existente:
-        esta em grupos que foram removidos do SAML
-    */
-    @Test
-    public void whenUserDoesntExistsAndUserHasGroupsAndThereArentGroupsInSamlResponse_ShouldCreateUserAndAddUserInSamlGroups() throws Exception {
-        given()
-            .identityProvider()
-            .hasAuthenticationData(user -> {
-                user.id = "arthur.dent@dontpanic.com";
-                user.firstName="Arthur";
-                user.lastName = "Dent";
-            })
-            .xwiki(users -> {
+            .xwiki(users ->
                 users.noUsersExist()
-                     .userHasGroup("samlGroup");
-            })
-        .whenAuthenticationIsPerformed()
+            )
+        .whenAuthenticationIsVerified()
         .then()
-            .samlLoginHasBeenProcessed()
-            .xwiki(users -> {
+            .samlAuthenticationHasBeenProcessed()
+            .xwiki(users ->
                 users.user("ArthurDent")
-                     .isntInGroups("samlGroup");
-            });
+                     .isInGroups("samlGroup")
+            );
     }
 
     private DSL given() throws XWikiException {
@@ -319,6 +276,7 @@ public class SamlAuthenticatorTest {
         final Properties props = new Properties();
         final XWikiStoreInterface xwikiStore;
         final XWikiMock xwiki = new XWikiMock();
+        XWikiUser loggedWikiUser = null;
 
         DSL() throws XWikiException {
             context.setWiki(xwiki);
@@ -340,10 +298,6 @@ public class SamlAuthenticatorTest {
 
         }
 
-        public IdentityProviderDSL identityProvider() {
-            return new IdentityProviderDSL();
-        }
-
         public DSL defaultGroupForNewUsers(String userGroup) {
             props.setProperty("xwiki.authentication.saml2.default_group_for_new_users",userGroup);
             return this;
@@ -354,30 +308,45 @@ public class SamlAuthenticatorTest {
             return this;
         }
 
-        public class IdentityProviderDSL {
+        public DSL userIsAnonymous() {
+            when(samlAuth.isAuthenticated()).thenReturn(false);
+            when(samlAuth.getNameId()).thenReturn(null);
+            return this;
+        }
 
-            public DSL hasAuthenticationData(Consumer<IdpUserData> userConfiguration) {
-                when(request.getParameter("SAMLResponse")).thenReturn("Some SAML Response");
-                when(samlAuth.isAuthenticated()).thenReturn(true);
-                IdpUserData idpUserData = new IdpUserData();
-                userConfiguration.accept(idpUserData);
-                when(samlAuth.getNameId()).thenReturn(idpUserData.id);
+        public DSL userIsLogged(String loggedUserName){
+            loggedWikiUser = mock(XWikiUser.class);
+            when(loggedWikiUser.getFullName()).thenReturn(loggedUserName);
+            when(request.getCookie("username")).thenReturn(mock(Cookie.class));
+            return this;
+        }
 
-                final Map<String, List<String>> samlAttributes = new LinkedHashMap<>();
-                samlAttributes.put("firstName", singletonList(idpUserData.firstName));
-                samlAttributes.put("lastName", singletonList(idpUserData.lastName));
-                samlAttributes.put("email", singletonList(idpUserData.id));
-                samlAttributes.put("XWikiGroups", singletonList(idpUserData.newGroup));
+        public DSL currentRequestUrlIs(String currentRequestUrl){
+            when(request.getRequestURL()).thenReturn(new StringBuffer(currentRequestUrl));
+            return this;
+        }
 
-                when(samlAuth.getAttributesName()).thenReturn(new ArrayList<>(samlAttributes.keySet()));
-                when(samlAuth.getAttributes()).thenReturn(samlAttributes);
+        public DSL isIdentityProviderAuthentication(Consumer<IdpUserData> userConfiguration) {
+            when(request.getParameter("SAMLResponse")).thenReturn("Some SAML Response");
+            when(samlAuth.isAuthenticated()).thenReturn(true);
+            IdpUserData idpUserData = new IdpUserData();
+            userConfiguration.accept(idpUserData);
+            when(samlAuth.getNameId()).thenReturn(idpUserData.id);
 
-                return DSL.this;
-            }
+            final Map<String, List<String>> samlAttributes = new LinkedHashMap<>();
+            samlAttributes.put("firstName", singletonList(idpUserData.firstName));
+            samlAttributes.put("lastName", singletonList(idpUserData.lastName));
+            samlAttributes.put("email", singletonList(idpUserData.id));
+            samlAttributes.put("XWikiGroups", singletonList(idpUserData.newGroup));
+
+            when(samlAuth.getAttributesName()).thenReturn(new ArrayList<>(samlAttributes.keySet()));
+            when(samlAuth.getAttributes()).thenReturn(samlAttributes);
+
+            return DSL.this;
         }
 
         public class XWikiUsersDSL {
-            public XWikiUsersDSL noUsersExist() {
+            public void noUsersExist() {
                 try {
                     when(xwikiStore.exists(any(), any())).thenReturn(false);
                     when(xwikiStore.search(anyString(), anyInt(), anyInt(), any(List.class), any()))
@@ -385,11 +354,9 @@ public class SamlAuthenticatorTest {
                 }catch (XWikiException e){
                     throw new RuntimeException(e);
                 }
-                return this;
             }
             public XWikiUsersDSL userExists(String userName){
                 try {
-                    when(xwikiStore.exists(any(), any())).thenReturn(true);
                     when(xwikiStore.search(anyString(), anyInt(), anyInt(), any(List.class), any()))
                             .thenReturn(singletonList(userName));
                 }catch (XWikiException e){
@@ -397,17 +364,16 @@ public class SamlAuthenticatorTest {
                 }
                 return this;
             }
-            public XWikiUsersDSL userHasGroup(String groupName) {
+            public void userHasGroup(String groupName) {
                 try{
-                    when(xwiki.baseObjectMock.get("SamlManagedGroups")).thenReturn((StringProperty) new StringClass().fromString(groupName));
+                    when(xwiki.baseObjectMock.get("SamlManagedGroups")).thenReturn(new StringClass().fromString(groupName));
                 }catch (XWikiException e){
                     throw new RuntimeException(e);
                 }
-                return this;
             }
         }
 
-        public ThenDSL whenAuthenticationIsPerformed() throws XWikiException {
+        public ThenDSL whenAuthenticationIsVerified() throws XWikiException {
             ConfigurationSourceWithProperties cfg = new ConfigurationSourceWithProperties();
             cfg.setFromProperties(props);
             XwikiAuthConfig authConfig = XwikiAuthConfig.from(cfg);
@@ -423,9 +389,7 @@ public class SamlAuthenticatorTest {
                     oneLoginAuth,
                     groupManager);
 
-            final XWikiUser xWikiUser = subject.checkAuth(context, () -> {
-                throw new IllegalStateException("should not be invoked");
-            });
+            final XWikiUser xWikiUser = subject.checkAuth(context, () -> loggedWikiUser);
             return new ThenDSL(xWikiUser);
         }
 
@@ -449,9 +413,17 @@ public class SamlAuthenticatorTest {
                 return this;
             }
 
-            public ThenDSL samlLoginHasBeenProcessed() throws Exception {
+            public ThenDSL samlAuthenticationHasBeenProcessed() throws Exception {
                 verify(samlAuth).processResponse();
                 return this;
+            }
+
+            public void shouldRedirectToIdentityProviderAndThenReturnTo(String returnUrl) throws IOException, SettingsException {
+                Mockito.verify(samlAuth).login(returnUrl);
+            }
+
+            public void authenticatedUserIs(String expectedUserName){
+                assertEquals(expectedUserName, xWikiUser.getFullName());
             }
 
             public class AssertionUsersDSL {
@@ -482,10 +454,9 @@ public class SamlAuthenticatorTest {
                         return this;
                     }
 
-                    public AssertionUserDSL isntInGroups(String userGroup) {
+                    public void isntInGroups(String userGroup) {
                         String userName = xWikiUser.getFullName().replace("XWiki:Users.", "");
                         verify(groupManager).removeUserFromXWikiGroup(userName,userGroup, context);
-                        return this;
                     }
 
                     class AssertionAttributesDSL {
@@ -500,9 +471,8 @@ public class SamlAuthenticatorTest {
                             return this;
                         }
 
-                        public AssertionAttributesDSL email(String email) {
+                        public void email(String email) {
                             assertEquals(email, xwiki.getSaveAttributeValue("email"));
-                            return this;
                         }
                     }
                 }
@@ -522,7 +492,7 @@ public class SamlAuthenticatorTest {
         final BaseObject baseObjectMock = mock(BaseObject.class);
         final Map<String, BaseObject> createdObjectsByEntity = new LinkedHashMap<>();
         public List<XWikiDocument> savedDocuments = new LinkedList<>();
-        private Map<String, String> savedUserAttributes = new LinkedHashMap<>();
+        private final Map<String, String> savedUserAttributes = new LinkedHashMap<>();
 
         public XWikiMock() {
             doAnswer(invocation -> {
@@ -539,12 +509,12 @@ public class SamlAuthenticatorTest {
                               Syntax syntax,
                               String userRights,
                               XWikiContext context) {
-            map.entrySet().forEach(entry -> this.savedUserAttributes.put(entry.getKey()+"", entry.getValue()+""));
+            map.forEach((key, value) -> this.savedUserAttributes.put(key + "", value + ""));
             return 0;
         }
 
         public String getSaveAttributeValue(String attributeName) {
-            return savedUserAttributes.get(attributeName).toString();
+            return savedUserAttributes.get(attributeName);
         }
 
         public XWikiDocument getDocument(DocumentReference reference, XWikiContext context) throws XWikiException
