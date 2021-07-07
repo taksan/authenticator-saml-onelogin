@@ -19,6 +19,9 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
+import ch.qos.logback.classic.Logger;
+import org.slf4j.LoggerFactory;
+import ch.qos.logback.classic.Level;
 import org.xwiki.component.manager.ComponentLookupException;
 import org.xwiki.component.manager.ComponentManager;
 import org.xwiki.model.reference.DocumentReference;
@@ -52,6 +55,8 @@ public class SamlAuthenticatorTest {
     @Before
     public void setup() throws ComponentLookupException {
         ConfigurationSourceWithProperties cfg = new ConfigurationSourceWithProperties();
+        Logger root = (Logger) LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME);
+        root.setLevel(Level.DEBUG);
 
         final Properties props = new Properties();
         props.putAll(
@@ -252,7 +257,7 @@ public class SamlAuthenticatorTest {
         given()
             .isIdentityProviderAuthentication(user -> {
                 user.id = "arthur.dent@dontpanic.com";
-                user.firstName="Arthur";
+                user.firstName="arthur";
                 user.lastName = "Dent";
                 user.newGroup = "samlGroup";
             })
@@ -266,6 +271,31 @@ public class SamlAuthenticatorTest {
                 users.user("ArthurDent")
                      .isInGroups("samlGroup")
             );
+    }
+
+    @Test
+    public void whenUserFirstNameIsInLowerCaseAndCapitalizeIsNotEnabled_ShouldKeepNameWithoutCapitalization() throws Exception {
+        given()
+                .isIdentityProviderAuthentication(user -> {
+                    user.id = "arthur.dent@dontpanic.com";
+                    user.firstName="arthur";
+                })
+                .shouldCapitalize(false)
+        .whenAuthenticationIsVerified()
+        .then()
+            .samlAuthenticationHasBeenProcessed()
+            .xwiki(users ->
+                users.user("arthur")
+            );
+    }
+
+    @Test
+    public void whenUserIsAlreadyLogged_ShouldBeAuthenticated() throws Exception {
+        given()
+            .userIsLoggedInTheSession("ArthurDent")
+        .whenAuthenticationIsVerified()
+        .then()
+            .authenticatedUser("ArthurDent");
     }
 
     private DSL given() throws XWikiException {
@@ -300,6 +330,7 @@ public class SamlAuthenticatorTest {
 
         public DSL defaultGroupForNewUsers(String userGroup) {
             props.setProperty("xwiki.authentication.saml2.default_group_for_new_users",userGroup);
+
             return this;
         }
 
@@ -318,6 +349,11 @@ public class SamlAuthenticatorTest {
             loggedWikiUser = mock(XWikiUser.class);
             when(loggedWikiUser.getFullName()).thenReturn(loggedUserName);
             when(request.getCookie("username")).thenReturn(mock(Cookie.class));
+            return this;
+        }
+
+        public DSL userIsLoggedInTheSession(String loggedUserName){
+             when(context.getRequest().getSession(true).getAttribute(any())).thenReturn(loggedUserName);
             return this;
         }
 
@@ -345,6 +381,11 @@ public class SamlAuthenticatorTest {
             return DSL.this;
         }
 
+        public DSL shouldCapitalize(boolean shouldCapitalize) {
+            props.setProperty("xwiki.authentication.saml2.xwiki_user_rule_capitalize", shouldCapitalize+"");
+            return this;
+        }
+
         public class XWikiUsersDSL {
             public void noUsersExist() {
                 try {
@@ -357,6 +398,7 @@ public class SamlAuthenticatorTest {
             }
             public XWikiUsersDSL userExists(String userName){
                 try {
+                    when(xwikiStore.exists(any(), any())).thenReturn(true);
                     when(xwikiStore.search(anyString(), anyInt(), anyInt(), any(List.class), any()))
                             .thenReturn(singletonList(userName));
                 }catch (XWikiException e){
