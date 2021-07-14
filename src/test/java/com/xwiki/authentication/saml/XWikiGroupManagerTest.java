@@ -1,13 +1,16 @@
 package com.xwiki.authentication.saml;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
 import com.xpn.xwiki.XWikiContext;
 import com.xpn.xwiki.doc.XWikiDocument;
 import com.xpn.xwiki.objects.BaseObject;
 import com.xpn.xwiki.objects.classes.BaseClass;
 import com.xpn.xwiki.web.XWikiRequest;
 import com.xpn.xwiki.web.XWikiResponse;
-import org.junit.Test;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 import org.xwiki.model.reference.DocumentReference;
 import org.xwiki.model.reference.DocumentReferenceResolver;
 
@@ -80,8 +83,10 @@ public class XWikiGroupManagerTest {
         private String groupName;
 
         final XWikiMock xwiki;
+        Logger root = (Logger) LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME);
 
         public DSL() {
+            root.setLevel(Level.OFF);
             context.setWikiId("XWIKI");
             context.setMainXWiki("MAIN-XWIKI");
             context.setAction("");

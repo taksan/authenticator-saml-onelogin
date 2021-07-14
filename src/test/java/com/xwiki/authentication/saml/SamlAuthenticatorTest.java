@@ -14,8 +14,8 @@ import com.xpn.xwiki.user.api.XWikiUser;
 import com.xpn.xwiki.web.Utils;
 import com.xpn.xwiki.web.XWikiRequest;
 import com.xpn.xwiki.web.XWikiResponse;
-import org.junit.Test;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
 import org.slf4j.LoggerFactory;
@@ -253,7 +253,7 @@ public class SamlAuthenticatorTest {
         Logger root = (Logger) LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME);
 
         DSL() throws XWikiException, ComponentLookupException {
-            root.setLevel(Level.DEBUG);
+            root.setLevel(Level.OFF);
             props.putAll(
                     Maps.newHashMap(
                             "xwiki.authentication.saml2.sp.entityid", "",
