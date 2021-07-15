@@ -37,6 +37,9 @@
   <description>XWiki authentication using SAML 2.0</description>
   <developers>
     <developer>
+      <name>Cristiano Deucher</name>
+    </developer>
+    <developer>
       <name>Gabriel Takeuchi</name>
     </developer>
   </developers>

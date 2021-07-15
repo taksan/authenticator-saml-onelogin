@@ -1,4 +1,4 @@
-# == Quick Start ==
+# Quick Start
 
 Run the following command inside the quick-start folder:
 
@@ -8,11 +8,12 @@ $ docker-compose up -d
 
 ```
 
-# Nexus
+## Nexus
 
++ Wait until nexus is ready, it may take a while.
 + URL: http://localhost:8081
 + User: admin
-+ Password: get the passoword running the following command:
++ Password: get the password running the following command:
     ```
     docker-compose exec nexus cat /nexus-data/admin.password
     ```
@@ -32,7 +33,7 @@ mvn clean deploy -DaltDeploymentRepository=repo::default::http://localhost:8081/
 
 ![nexus_repository](images/nexus_repository.png)
 
-# KeyCLoak
+## Keycloak
 
 + URL: http://localhost:8090
 + Login at Console Administration
@@ -55,7 +56,7 @@ mvn clean deploy -DaltDeploymentRepository=repo::default::http://localhost:8081/
 
 
 
-# XWiki
+## XWiki
 
 + URL: http://localhost:8080
 + Complete the instalations quick-start of XWiki
@@ -73,7 +74,7 @@ $ ./setup.sh
     
     ![xwiki_extension_indexing](images/xwiki_extension_indexing.png)
 
-    + To find the extension, its necessary click over More button and Advanced search link:
+    + To find the extension, click on the "More" button and then on Advanced search link:
         + EXTENSION ID: org.xwiki.contrib.authentication:xwiki-authenticator-saml20
         + VERSION: 1.0-SNAPSHOT
     + CLick over the install button and wait until finish the instalation process.
@@ -82,7 +83,7 @@ $ ./setup.sh
 
 ---
 
-# == Manual Setup ==
+## Manual Setup
 
 1. Build the project
 

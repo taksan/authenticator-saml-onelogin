@@ -13,7 +13,7 @@ keycloakCertificate=$(cat metadata.xml | sed -E 's/.*<ds:X509Certificate>([^<]*)
 docker-compose exec web bash -c """
 echo 'extension.repositories=maven-xwiki:maven:https://nexus.xwiki.org/nexus/content/groups/public/
 extension.repositories=extensions.xwiki.org:xwiki:https://extensions.xwiki.org/xwiki/rest/
-extension.repositories=local-xwiki:maven:http://xwiki-nexusx:8081/repository/maven-snapshots
+extension.repositories=local-xwiki:maven:http://xwiki-nexus:8081/repository/maven-snapshots
 ' >> /usr/local/xwiki/data/xwiki.properties
 """
 
