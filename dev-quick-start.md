@@ -39,8 +39,9 @@ mvn clean deploy -DaltDeploymentRepository=repo::default::http://localhost:8081/
 + Login at Console Administration
     + User: admin
     + Password: admin
-+ After the instalation is finished, its necessary create the realm in the KeyCloak importing configurations:
-    + Go to KeyCloak interface and select the option ```Add realm```.
++ After the instalation is finished, its necessary create the realm in the Keycloak importing configurations:
+    + Keep proposed MyNewRealm name.
+    + Go to Keycloak interface and select the option ```Add realm```.
     + Import ```realm-export.json``` file from quick-start folder.
         + Check ```Enable``` option and click over ```Create``` button.  
 
@@ -80,6 +81,14 @@ $ ./setup.sh
     + CLick over the install button and wait until finish the instalation process.
 
 ![xwiki_extension](images/xwiki_extension.png)
+
++ Run the following command inside the quick-start folder:
+
+```sh
+docker-compose restart web
+```
+
+
 
 ---
 

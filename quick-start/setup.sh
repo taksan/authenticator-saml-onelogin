@@ -11,20 +11,32 @@ keycloakCertificate=$(cat metadata.xml | sed -E 's/.*<ds:X509Certificate>([^<]*)
 
 
 docker-compose exec web bash -c """
-echo 'extension.repositories=maven-xwiki:maven:https://nexus.xwiki.org/nexus/content/groups/public/
+sed -i '/####CUSTOM_SETUP_START/,/####CUSTOM_SETUP_END/ d' /usr/local/xwiki/data/xwiki.properties
+echo '
+####CUSTOM_SETUP_START
+
+extension.repositories=maven-xwiki:maven:https://nexus.xwiki.org/nexus/content/groups/public/
 extension.repositories=extensions.xwiki.org:xwiki:https://extensions.xwiki.org/xwiki/rest/
 extension.repositories=local-xwiki:maven:http://xwiki-nexus:8081/repository/maven-snapshots
+
+####CUSTOM_SETUP_END
 ' >> /usr/local/xwiki/data/xwiki.properties
 """
 
 
 docker-compose exec web bash -c """
-echo 'xwiki.authentication.authclass=com.xwiki.authentication.saml.XWikiSAML20Authenticator
+sed -i '/####CUSTOM_SETUP_START/,/####CUSTOM_SETUP_END/ d' /usr/local/xwiki/data/xwiki.cfg
+echo '
+####CUSTOM_SETUP_START
+
+xwiki.authentication.authclass=com.xwiki.authentication.saml.XWikiSAML20Authenticator
 xwiki.authentication.saml2.idp.single_sign_on_service.url=$keycloakSingleSignOnService
 xwiki.authentication.saml2.idp.entityid=$keycloakIdpEntityID
 xwiki.authentication.saml2.sp.entityid=$keycloakSpEntityID
 xwiki.authentication.saml2.idp.x509cert=$keycloakCertificate
 xwiki.authentication.saml2.sp.assertion_consumer_service.url=$xwikiUrlLogin
+
+####CUSTOM_SETUP_END
 ' >> /usr/local/xwiki/data/xwiki.cfg
 """
 

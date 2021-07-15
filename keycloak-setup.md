@@ -1,7 +1,7 @@
-# It has been tested with KeyCloak SAML authentication.
+# It has been tested with Keycloak SAML authentication.
 
 ## Step 1) Create your realm
-+ [Follow the instructions in KeyCloak documentation.](https://www.keycloak.org/docs/latest/getting_started)
++ [Follow the instructions in Keycloak documentation.](https://www.keycloak.org/docs/latest/getting_started)
 
 
 ![keycloak realm settings](images/keycloak_realm_settings.png)
@@ -71,7 +71,7 @@
 ## Step 4) Client Mappers
 
 + Click over the "Add Builtin" button.
-+ Check all fields and click over the "Add sleected" button.
++ Check all fields and click over the "Add selected" button.
 
 ![keycloak_clients_mapper1](images/keycloak_clients_mapper1.png)
 ![keycloak_clients_mapper2](images/keycloak_clients_mapper2.png)
@@ -82,13 +82,20 @@
 ![keycloak_clients_mapper_givenname](images/keycloak_clients_mapper_givenname.png)
 ![keycloak_clients_mapper_surname](images/keycloak_clients_mapper_surname.png)
 ![keycloak_clients_mapper_email](images/keycloak_clients_mapper_email.png)
-![keycloak_clients_mapper_role](images/keycloak_clients_mapper_role.png)
 
 + Add a new group settings.
 
 ![keycloak_clients_mapper_group](images/keycloak_clients_mapper_group.png)
 
-+ Create a new user.
+
+## Step 5) Client Scopes 
++ Client Scopes menu > role_list > Mappers > [edit] > enable [Single Role Attribute]
+
+![keycloak_clients_mapper_roles](images/keycloak_clients_mapper_roles.png)
+
+
+## Step 6) Create user
++ Go to User menu and click over Add user button.
 
 ![keycloak_user](images/keycloak_user.png)
 

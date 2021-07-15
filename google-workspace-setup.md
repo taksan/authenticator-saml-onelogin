@@ -1,14 +1,13 @@
-= SAML 2.0 Authenticator =
+# Google Workspace setup instructions
 
-This module has been developed to provide a working SAML 2.0 Authenticator and is mostly based on
-[https://github.com/xwiki-contrib/authenticator-saml], but replaces OpenSAML by OneLogin 
-[https://github.com/onelogin/java-saml] for the SAML authentication.
+These instructions are applicable to configure Google Workspace as the IDP for XWiki
+using this plugin.  
 
-It has been tested with Google Workspace SAML authentication. The following configurations
-are required in the xwiki.cfg file:
+The following configurations are required in the xwiki.cfg file.
+
+## Required properties
 
 ```sh
-# Required properties
 xwiki.authentication.authclass=com.xwiki.authentication.saml.XWikiSAML20Authenticator
 
 xwiki.authentication.saml2.idp.single_sign_on_service.url=https://accounts.google.com/o/saml2/idp?idpid=<Copy from google>
@@ -21,7 +20,7 @@ for line breaks
 xwiki.authentication.saml2.sp.assertion_consumer_service.url=https://<you wiki domain>/bin/loginsubmit/XWiki/XWikiLogin
 ```
 
-== Google Workspace set up instructions ==
+## Google Workspace set up instructions
 
 When setting up with Google Workspace SAML, follow these instructions:
 
