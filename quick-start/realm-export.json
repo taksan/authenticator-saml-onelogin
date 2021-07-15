@@ -67,17 +67,6 @@
           }
         },
         {
-          "name": "role list",
-          "protocol": "saml",
-          "protocolMapper": "saml-role-list-mapper",
-          "consentRequired": false,
-          "config": {
-            "single": "true",
-            "attribute.nameformat": "Basic",
-            "attribute.name": "Role"
-          }
-        },
-        {
           "name": "X500 email",
           "protocol": "saml",
           "protocolMapper": "saml-user-property-mapper",
