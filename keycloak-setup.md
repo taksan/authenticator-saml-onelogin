@@ -1,14 +1,18 @@
-# It has been tested with Keycloak SAML authentication.
+# Keycloak setup instructions
+
+Follow these instructions to set up Keycloak as the IDP for XWIKI
 
 ## Step 1) Create your realm
 + [Follow the instructions in Keycloak documentation.](https://www.keycloak.org/docs/latest/getting_started)
 
 
 ![keycloak realm settings](images/keycloak_realm_settings.png)
-+ After create the new realm, you should get the ```Identity Provider Metada``` XML by clicking on the region pointed out above. 
++ After you create the new realm, you should download the ```Identity Provider Metada``` XML by clicking on the region pointed out above.
+
+The file will look like as follows:
 
 ```xml
-<!--Identity Provider Metada XML Example:-->
+<!--Identity Provider Metadata XML Example:-->
 
 <!-- "xwiki.authentication.saml2.idp.entityid" will come from the following attribute `entityID` -->
 <EntityDescriptor xmlns="urn:oasis:names:tc:SAML:2.0:metadata" xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata" xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" xmlns:ds="http://www.w3.org/2000/09/xmldsig#" entityID="http://<keycloak-url>/auth/realms/<realm-name>">
@@ -16,12 +20,12 @@
 		<KeyDescriptor use="signing">
 			<KeyInfo>
 				<KeyName>
-					...QmYWODphcDVdYY6pMed...
+					...
 				</KeyName>
 				<X509Data>
           <!-- "xwiki.authentication.saml2.idp.x509cert" will come from the following attribute -->
 					<X509Certificate>
-						...MIICoTCCAYkCBgF6m...
+						...
 					</X509Certificate>
 				</X509Data>
 			</KeyInfo>
@@ -55,12 +59,15 @@
 ## Step 2) Create Client for SAML Authentication
 
 ![keycloak client ](images/keycloak_clients.png)
-+ The ```Client ID``` will be referenced in the xWiki attribute settings under ```sp.entityid``` in ```xwiki.cfg```. 
-+ You must be sure to choose ```SAML``` in the ```Client protocol```.
++ The ```Client ID``` will be referenced in the xWiki attribute settings under ```xwiki.authentication.saml2.sp.entityid``` in ```xwiki.cfg```. 
++ Make sure to choose ```SAML``` in the ```Client protocol```.
 ---
 ## Step 3) Client Settings
+
+Go ahead and configure the client settings. Notice the following:
+
 + ```Client Signature Required``` should be unchecked.
-+ ```Name ID Format``` the option selected should be email.
++ ```Name ID Format``` the selected option should be email.
 + ```Valid Redirect URIs``` should be ```https://<you wiki domain>/bin/loginsubmit/XWiki/XWikiLogin```
 + ```Master SAML Processing URL``` should be ```https://<you wiki domain>/bin/loginsubmit/XWiki/XWikiLogin```
 
@@ -70,8 +77,10 @@
 ---
 ## Step 4) Client Mappers
 
+To work with the default configuration, you will need to perform some configurations with attribute mapping.
+
 + Click over the "Add Builtin" button.
-+ Check all fields and click over the "Add selected" button.
++ Select all but role list and click over the "Add selected" button.
 
 ![keycloak_clients_mapper1](images/keycloak_clients_mapper1.png)
 ![keycloak_clients_mapper2](images/keycloak_clients_mapper2.png)
@@ -83,16 +92,20 @@
 ![keycloak_clients_mapper_surname](images/keycloak_clients_mapper_surname.png)
 ![keycloak_clients_mapper_email](images/keycloak_clients_mapper_email.png)
 
-+ Add a new group settings.
++ You can optionally create a group custom field to specify which XWiki groups the user belongs to
 
 ![keycloak_clients_mapper_group](images/keycloak_clients_mapper_group.png)
 
+## Step 5) Client Scopes
 
-## Step 5) Client Scopes 
+Make sure to change the following configuration, or else you will the authentication *won't work*!
+
 + Client Scopes menu > role_list > Mappers > [edit] > enable [Single Role Attribute]
 
 ![keycloak_clients_mapper_roles](images/keycloak_clients_mapper_roles.png)
 
+This configuration will make sure the roles are grouped under a single attribute and prevent 
+an issue with duplicate fields during authentication.
 
 ## Step 6) Create user
 + Go to User menu and click over Add user button.
@@ -104,7 +117,11 @@
 ![keycloak_user_password](images/keycloak_user_password.png)
 ---
 ## Step 5) XWiki attributes
-+ The following configurations are required in the xwiki.cfg file:
+
+After everything above has been set up, you will need to configure the at least the following
+attributes in xwiki.cfg file. You can get most of the configurations below from the metadata.xml 
+file you downloaded on step 1.
+
 ```properties
 # Required properties for xwiki.cfg file
 xwiki.authentication.authclass=com.xwiki.authentication.saml.XWikiSAML20Authenticator
