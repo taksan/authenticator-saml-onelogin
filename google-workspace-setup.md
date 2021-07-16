@@ -29,9 +29,20 @@ When setting up with Google Workspace SAML, follow these instructions:
 If you want, you can create a custom field for your users names XWikiGroups, single value, text. 
 This can be used to specify the user groups.
 
-1. Create a SAML Custom App
+![google_user_customattributes](images/google_user_customattributes.png)
+![google_user_customfield](images/google_user_customfield.png)
 
-2. In the second page download the metadata file (Identity Provider Metada XML). The format will look like the following:
+1. Create a SAML Custom App
+    + From the Admin console Home page, go to Apps and then Web and mobile apps.
+    + Click Add App and then Add custom SAML app.
+
+![google_saml_app](images/google_saml_app.png)
+
+2. In the second page download the metadata file (Identity Provider Metada XML). 
+   
+![google_app_metadata.png](images/google_app_metadata.png)
+
++ The format will look like the following:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
@@ -55,12 +66,14 @@ The value of Location field of `urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST` 
 
 `entityID` value in the first line should be set on `xwiki.authentication.saml2.idp.entityid`.
 
-2. Next to the second page:
+2. Next to the service provider page:
 
 * ACS URL: https://<you wiki domain>/bin/loginsubmit/XWiki/XWikiLogin
 * Entity ID: the same value present on xwiki.authentication.saml2.sp.entityid
 * Name ID Format: EMAIL
 * Name ID Field: Basic Information > Primary email
+
+![google_app_service_provider](images/google_app_service_provider.png)
 
 3. Attribute mapping:
 
@@ -70,3 +83,9 @@ The value of Location field of `urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST` 
 
 If you created the custom field XWikiGroups, set up the following attribute mapping:
 * XWikiGroups -> XWikiGroups 
+
+![google_app_mapping](images/google_app_mapping.png)
+
++ Overview
+
+![google_app_overview](images/google_app_overview.png)
