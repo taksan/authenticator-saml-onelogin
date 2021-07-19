@@ -36,6 +36,7 @@ This can be used to specify the user groups.
     + From the Admin console Home page, go to Apps and then Web and mobile apps.
     + Click Add App and then Add custom SAML app.
 
+![google_saml_app_add](images/google_saml_app_add.png)
 ![google_saml_app](images/google_saml_app.png)
 
 2. In the second page download the metadata file (Identity Provider Metada XML). 
@@ -68,12 +69,13 @@ The value of Location field of `urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST` 
 
 2. Next to the service provider page:
 
-* ACS URL: https://<you wiki domain>/bin/loginsubmit/XWiki/XWikiLogin
+* ACS URL: https://(your wiki domain)/bin/loginsubmit/XWiki/XWikiLogin
 * Entity ID: the same value present on xwiki.authentication.saml2.sp.entityid
 * Name ID Format: EMAIL
 * Name ID Field: Basic Information > Primary email
 
 ![google_app_service_provider](images/google_app_service_provider.png)
+![google_app_service_provider_continue](images/google_app_service_provider_continue.png)
 
 3. Attribute mapping:
 

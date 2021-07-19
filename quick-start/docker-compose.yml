@@ -11,6 +11,7 @@ services:
       - db
     ports:
       - "8080:8080"
+      - "8443:8443"  
     # The DB_USER/DB_PASSWORD/DB_HOST variables are used in the hibernate.cfg.xml file.
     environment:
       - DB_USER=xwiki
