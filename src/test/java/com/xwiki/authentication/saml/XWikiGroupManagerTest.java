@@ -23,10 +23,10 @@ import static org.mockito.Mockito.when;
 
 public class XWikiGroupManagerTest {
     @Test
-    public void addUserToGroup_ShouldAddUserToGivenGroup() {
+    public void whenAddUserToGroup_ShouldAddUserToGivenGroup() {
         given()
-            .user("ArthurDent")
-            .fromGroup("StarshipTroopers")
+            .userToAdd("ArthurDent")
+            .targetGroup("StarshipTroopers")
         .whenAddedToGroup()
         .then()
             .user("ArthurDent")
@@ -34,10 +34,10 @@ public class XWikiGroupManagerTest {
     }
 
     @Test
-    public void removeUserFromGroup_ShouldRemoveUserFromGivenGroup() {
+    public void whenRemoveUserFromGroup_ShouldRemoveUserFromGivenGroup() {
         given()
-            .user("ArthurDent")
-            .fromGroup("StarshipTroopers")
+            .userToAdd("ArthurDent")
+            .targetGroup("StarshipTroopers")
             .userIsAlreadyInGroup("ArthurDent","StarshipTroopers")
         .whenRemoveFromGroup()
         .then()
@@ -46,10 +46,10 @@ public class XWikiGroupManagerTest {
     }
 
     @Test
-    public void userAlreadyMemberOfGroup_ShouldIgnoreTheNewMembership() {
+    public void whenUserAlreadyMemberOfGroup_ShouldIgnoreTheNewMembership() {
         given()
-            .user("ArthurDent")
-            .fromGroup("StarshipTroopers")
+            .userToAdd("ArthurDent")
+            .targetGroup("StarshipTroopers")
             .userIsAlreadyInGroup("ArthurDent","StarshipTroopers")
         .whenAddedToGroup()
         .then()
@@ -58,10 +58,10 @@ public class XWikiGroupManagerTest {
     }
 
     @Test
-    public void removeUserFromGroupWhereHeIsnt_ShouldNotChangeGroupMembership() {
+    public void whenRemoveUserFromGroupWhereHeIsnt_ShouldNotChangeGroupMembership() {
         given()
-            .user("ArthurDent")
-            .fromGroup("StarshipTroopers")
+            .userToAdd("ArthurDent")
+            .targetGroup("StarshipTroopers")
         .whenRemoveFromGroup()
         .then()
             .user("ArthurDent")
@@ -87,25 +87,27 @@ public class XWikiGroupManagerTest {
 
         public DSL() {
             root.setLevel(Level.OFF);
-            context.setWikiId("XWIKI");
-            context.setMainXWiki("MAIN-XWIKI");
-            context.setAction("");
-            context.setResponse(mock(XWikiResponse.class));
+
             XWikiRequest request = mock(XWikiRequest.class);
             HttpSession httpSession = mock(HttpSession.class);
             when(request.getSession(true)).thenReturn(httpSession);
             when(request.getSession()).thenReturn(httpSession);
 
+            context.setWikiId("XWIKI");
+            context.setMainXWiki("MAIN-XWIKI");
+            context.setAction("");
+            context.setResponse(mock(XWikiResponse.class));
             context.setRequest(request);
+
             xwiki = new XWikiMock(context);
             context.setWiki(xwiki);
         }
 
-        public DSL user(String userName){
+        public DSL userToAdd(String userName){
             this.userName = userName;
             return this;
         }
-        public DSL fromGroup(String groupName){
+        public DSL targetGroup(String groupName){
             this.groupName = groupName;
             return this;
         }
@@ -139,14 +141,14 @@ public class XWikiGroupManagerTest {
             }
 
             public void isInGroup(String groupName) {
-                String fullGroupName = "XWikiGroups."+groupName;
+                String fullGroupName = "XWikiGroups." + groupName;
                 XWikiDocument groupDoc =
                         xwiki.getSavedDocuments().stream().filter(doc -> doc.toString().equals(fullGroupName)).findFirst()
                                 .orElseGet(() -> Assertions.fail("Group " + groupName + " doesn't exist"));
 
                 BaseClass ref = xwiki.getGroupClass(context);
                 BaseObject obj = groupDoc.getXObject(ref.getDocumentReference(), "member", this.userName);
-                assertNotNull(obj, "User is not in the group");
+                assertNotNull(obj, "User " + this.userName + " is not in the group " + groupName);
             }
 
             public void isntInGroup(String groupName) {
@@ -160,5 +162,4 @@ public class XWikiGroupManagerTest {
             }
         }
     }
-
 }

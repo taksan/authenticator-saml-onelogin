@@ -8,19 +8,17 @@ import com.xpn.xwiki.objects.StringProperty;
 import com.xpn.xwiki.objects.classes.BaseClass;
 import com.xpn.xwiki.objects.classes.StringClass;
 import com.xpn.xwiki.objects.meta.StringMetaClass;
-import org.xwiki.model.reference.DocumentReference;
-import org.xwiki.model.reference.EntityReference;
-import org.xwiki.rendering.syntax.Syntax;
-
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import org.xwiki.model.reference.DocumentReference;
+import org.xwiki.model.reference.EntityReference;
+import org.xwiki.rendering.syntax.Syntax;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -28,12 +26,12 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 
 public class XWikiMock extends XWiki {
-    final Map<String, List<BaseObject>> createdObjectsByEntity = new LinkedHashMap<>();
-    public Set<XWikiDocument> savedDocuments = new HashSet<>();
+    public final Map<String, List<BaseObject>> createdObjectsByEntity = new LinkedHashMap<>();
+    public final Set<XWikiDocument> savedDocuments = new LinkedHashSet<>();
     private final BaseClass newClass;
-    private final Map<DocumentReference, XWikiDocument> docByReference = new HashMap<>();
+    private final Map<DocumentReference, XWikiDocument> docByReference = new LinkedHashMap<>();
 
-    final BaseObject baseObjectMock = mock(BaseObject.class);
+    public final BaseObject baseObjectMock = mock(BaseObject.class);
     private final Map<String, String> savedUserAttributes = new LinkedHashMap<>();
 
     public XWikiMock(XWikiContext context) {
@@ -45,10 +43,9 @@ public class XWikiMock extends XWiki {
             @SuppressWarnings("rawtypes")
             @Override
             public Collection getFieldList() {
-                Map<String, Object> fields = new LinkedHashMap<>();
-
-                StringMetaClass metaClass = new StringMetaClass();
-                StringClass prop = new StringClass("member", "XWikiGroups", metaClass);
+                final Map<String, Object> fields = new LinkedHashMap<>();
+                final StringMetaClass metaClass = new StringMetaClass();
+                final StringClass prop = new StringClass("member", "XWikiGroups", metaClass);
                 fields.put("member", prop);
 
                 return fields.values();
@@ -56,7 +53,7 @@ public class XWikiMock extends XWiki {
         };
 
         doAnswer(invocation -> {
-            savedUserAttributes.put(invocation.getArguments()[0].toString(), invocation.getArguments()[1].toString());
+            savedUserAttributes.put(invocation.getArgument(0).toString(), invocation.getArgument(1).toString());
             return null;
         }).when(baseObjectMock).set(any(), any(), any());
     }
@@ -91,7 +88,7 @@ public class XWikiMock extends XWiki {
             @Override
             public BaseObject newXObject(EntityReference classReference, XWikiContext context) {
                 createdObjectsByEntity.putIfAbsent(classReference.toString(), new ArrayList<>());
-                BaseObject obj = new BaseObject() {
+                final BaseObject obj = new BaseObject() {
                     public DocumentReference getXClassReference() {
                         return (DocumentReference) classReference;
                     }
