@@ -29,7 +29,7 @@ a couple of properties.
 
 ## Required properties
 
-* xwiki.authentication.authclass=com.xwiki.authentication.saml.XWikiSAML20Authenticator
+* `xwiki.authentication.authclass=com.xwiki.authentication.saml.XWikiSAML20Authenticator`
 * `xwiki.authentication.saml2.idp.single_sign_on_service.url`:
     This option is used to tell what is the IDP URL where authentication happens. Usually, you can get this information from metadata.xml. Choose the "POST" URL.
 * `xwiki.authentication.saml2.idp.entityid`:
@@ -43,13 +43,10 @@ your XWiki instance. Some people recommend using the application URL.
     Usually, you will configure this ID somewhere in the IDP, so it can tell whether authorization 
 requests are coming from a valid application and to choose the correct configuration.
 * `xwiki.authentication.saml2.idp.x509cert`
-This is the IDP certificate. This is used to validate the identity of the IDP provider
+    This is the IDP certificate. This is used to validate the identity of the IDP provider
 to ensure it is legitimate.
-```
-xwiki.authentication.saml2.sp.assertion_consumer_service.url
-```
-This is XWiki's URL that accepts the post to process the authentication coming from IDP. It will always be like this:
-`https://<your wiki domain>/bin/loginsubmit/XWiki/XWikiLogin`  
+* `xwiki.authentication.saml2.sp.assertion_consumer_service.url`:
+    This is XWiki's URL that accepts the post to process the authentication coming from IDP. It will always be like this:`https://<your wiki domain>/bin/loginsubmit/XWiki/XWikiLogin`  
 
 ## Properties with default values
 
@@ -66,9 +63,9 @@ You can map multiple fields separating each mapping by comma.
 
 The default value means:
 
-+ IDP's email field will be mapped to Xwiki's email
-+ IDP's firstName field will be mapped to Xwiki's first_name
-+ IDP's lastName field will be mapped to Xwiki's last_name
++ IDP's `email` field will be mapped to Xwiki's `email`
++ IDP's `firstName` field will be mapped to Xwiki's `first_name`
++ IDP's `lastName` field will be mapped to Xwiki's `last_name`
 
 The above fields are the minimum required fields.
 

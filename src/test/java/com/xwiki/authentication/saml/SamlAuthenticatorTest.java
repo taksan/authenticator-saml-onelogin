@@ -1,3 +1,22 @@
+/*
+ * See the NOTICE file distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation; either version 2.1 of
+ * the License, or (at your option) any later version.
+ *
+ * This software is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this software; if not, write to the Free
+ * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+ * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+ */
 package com.xwiki.authentication.saml;
 
 import ch.qos.logback.classic.Level;
@@ -18,6 +37,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
 import org.slf4j.LoggerFactory;
+import org.testcontainers.shaded.org.apache.commons.lang.NotImplementedException;
 import org.xwiki.component.manager.ComponentLookupException;
 import org.xwiki.component.manager.ComponentManager;
 import org.xwiki.model.reference.DocumentReference;
@@ -37,8 +57,7 @@ import java.util.function.Consumer;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -130,7 +149,7 @@ public class SamlAuthenticatorTest {
         given()
             .identityProviderAuthenticatedUser(user -> {
                 user.id = "arthur.dent@dontpanic.com";
-                user.firstName="Arthur";
+                user.firstName = "Arthur";
                 user.lastName = "Dent";
             })
             .defaultGroupForNewUsers("UserGroup")
@@ -157,7 +176,7 @@ public class SamlAuthenticatorTest {
         given()
             .identityProviderAuthenticatedUser(user -> {
                 user.id = "arthur.dent@dontpanic.com";
-                user.firstName="Arthur";
+                user.firstName = "Arthur";
                 user.lastName = "Dent";
             })
             .defaultGroupForNewUsers("UserGroup")
@@ -184,7 +203,7 @@ public class SamlAuthenticatorTest {
         given()
             .identityProviderAuthenticatedUser(user -> {
                 user.id = "arthur.dent@dontpanic.com";
-                user.firstName="Arthur";
+                user.firstName = "Arthur";
                 user.lastName = "Dent";
                 user.newGroup = "samlGroup";
             })
@@ -205,7 +224,7 @@ public class SamlAuthenticatorTest {
         given()
             .identityProviderAuthenticatedUser(user -> {
                 user.id = "arthur.dent@dontpanic.com";
-                user.firstName="Arthur";
+                user.firstName = "Arthur";
                 user.lastName = "Dent";
             })
             .xwiki(users ->
@@ -226,7 +245,7 @@ public class SamlAuthenticatorTest {
         given()
             .identityProviderAuthenticatedUser(user -> {
                 user.id = "arthur.dent@dontpanic.com";
-                user.firstName="arthur";
+                user.firstName = "arthur";
                 user.lastName = "Dent";
                 user.newGroup = "samlGroup";
             })
@@ -247,7 +266,7 @@ public class SamlAuthenticatorTest {
         given()
             .identityProviderAuthenticatedUser(user -> {
                 user.id = "arthur.dent@dontpanic.com";
-                user.firstName="arthur";
+                user.firstName = "arthur";
             })
             .shouldCapitalize(false)
         .whenAuthenticationIsVerified()
@@ -263,7 +282,7 @@ public class SamlAuthenticatorTest {
         given()
             .identityProviderAuthenticatedUser(user -> {
                 user.id = "arthur.dent@dontpanic.com";
-                user.firstName="arthur";
+                user.firstName = "arthur";
             })
             .shouldCapitalize(true)
         .whenAuthenticationIsVerified()
@@ -272,6 +291,33 @@ public class SamlAuthenticatorTest {
             .xwiki(users ->
                 users.user("Arthur")
             );
+    }
+
+    @Test
+    public void whenFailsToGenerateUserName_ShouldThrowException() throws Exception {
+        given()
+            .identityProviderAuthenticatedUser(user -> {
+                user.id = "arthur.dent@dontpanic.com";
+                user.firstName = "";
+                user.lastName = "";
+            })
+        .whenAuthenticationIsVerified()
+        .then()
+            .throwsUserCreationFailedException("Could not generate a username for user arthur.dent@dontpanic.com");
+    }
+
+    @Test
+    public void whenFailsToCreateUser_ShouldThrowException() throws Exception {
+        given()
+            .identityProviderAuthenticatedUser(user -> {
+                user.id = "arthur.dent@dontpanic.com";
+                user.firstName = "Arthur";
+                user.lastName ="Dent";
+            })
+            .userCreationFails()
+        .whenAuthenticationIsVerified()
+        .then()
+            .throwsUserCreationFailedException("XWiki failed to create user [arthur.dent@dontpanic.com]. Error code [-3]");
     }
 
     private DSL given() throws XWikiException, ComponentLookupException {
@@ -428,6 +474,11 @@ public class SamlAuthenticatorTest {
             return this;
         }
 
+        public DSL userCreationFails() {
+            xwiki.makeCreateUserReturnError();
+            return this;
+        }
+
         public class XWikiUsersDSL {
             public void noUsersExist() {
                 try {
@@ -473,15 +524,21 @@ public class SamlAuthenticatorTest {
                     oneLoginAuth,
                     groupManager);
 
-            final XWikiUser xWikiUser = subject.checkAuth(context, () -> loggedWikiUser);
-            return new ThenDSL(xWikiUser);
+            try {
+                final XWikiUser xWikiUser = subject.checkAuth(context, () -> loggedWikiUser);
+                return new ThenDSL(xWikiUser, null);
+            }catch (XWikiException xWikiException){
+                return new ThenDSL(null, xWikiException);
+            }
         }
 
         public class ThenDSL {
             private final XWikiUser xWikiUser;
+            private final XWikiException xWikiException;
 
-            public ThenDSL(XWikiUser xWikiUser) {
+            public ThenDSL(XWikiUser xWikiUser, XWikiException xWikiException) {
                 this.xWikiUser = xWikiUser;
+                this.xWikiException = xWikiException;
             }
 
             public ThenDSL xwiki(Consumer<AssertionUsersDSL> assertionUsers) {
@@ -508,6 +565,10 @@ public class SamlAuthenticatorTest {
 
             public void authenticatedUserIs(String expectedUserName){
                 assertEquals(expectedUserName, xWikiUser.getFullName());
+            }
+
+            public void throwsUserCreationFailedException(String expectedMessage) {
+                assertTrue(xWikiException.getMessage().contains(expectedMessage));
             }
 
             public class AssertionUsersDSL {
