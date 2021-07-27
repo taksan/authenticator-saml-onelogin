@@ -21,9 +21,14 @@ package com.xwiki.authentication.saml;
 
 import com.xpn.xwiki.XWiki;
 import com.xpn.xwiki.XWikiContext;
+import com.xpn.xwiki.XWikiException;
 import com.xpn.xwiki.doc.XWikiDocument;
 import com.xpn.xwiki.objects.BaseObject;
+import com.xpn.xwiki.objects.StringProperty;
 import com.xpn.xwiki.objects.classes.BaseClass;
+import com.xpn.xwiki.objects.classes.StringClass;
+import java.util.Optional;
+import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xwiki.model.EntityType;
@@ -35,6 +40,9 @@ import org.xwiki.rendering.syntax.Syntax;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import static com.xwiki.authentication.saml.SamlAuthenticationResponseHandler.PROPERTY_TO_STORE_SAML_MANAGED_GROUPS;
+import static com.xwiki.authentication.saml.SamlAuthenticationResponseHandler.USER_XCLASS;
+import static org.apache.commons.compress.utils.Sets.newHashSet;
 
 public class XWikiGroupManager {
     private static final Logger LOG = LoggerFactory.getLogger(XWikiGroupManager.class);
@@ -48,13 +56,6 @@ public class XWikiGroupManager {
         this.groupResolver = groupResolver;
     }
 
-    /**
-     * Add user name to provided XWiki group.
-     *
-     * @param xwikiUserName the full name of the user.
-     * @param groupName the name of the group.
-     * @param context the XWiki context.
-     */
     protected synchronized void addUserToXWikiGroup(String xwikiUserName, String groupName, XWikiContext context)
     {
         try {
@@ -95,13 +96,6 @@ public class XWikiGroupManager {
         }
     }
 
-    /**
-     * Remove user name from provided XWiki group.
-     *
-     * @param xwikiUserName the full name of the user.
-     * @param groupName the name of the group.
-     * @param context the XWiki context.
-     */
     protected void removeUserFromXWikiGroup(String xwikiUserName, String groupName, XWikiContext context)
     {
         try {
