@@ -14,7 +14,6 @@ import com.xpn.xwiki.user.api.XWikiUser;
 import com.xpn.xwiki.web.Utils;
 import com.xpn.xwiki.web.XWikiRequest;
 import com.xpn.xwiki.web.XWikiResponse;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
@@ -28,7 +27,11 @@ import org.xwiki.model.reference.EntityReferenceSerializer;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpSession;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
@@ -36,13 +39,16 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class SamlAuthenticatorTest {
-
     @Test
-    public void whenTheRequestHasNotBeenTriggeredByASamlResponseAndUserIsntLoggedIn_ShouldStartSamlAuthentication() throws XWikiException, IOException, SettingsException, ComponentLookupException {
+    public void whenAnonymousUserAccess_ShouldStartSamlAuthentication() throws XWikiException, IOException, SettingsException, ComponentLookupException {
         given()
             .userIsAnonymous()
             .currentRequestUrlIs("https://happy")
@@ -52,48 +58,77 @@ public class SamlAuthenticatorTest {
     }
 
     @Test
-    public void whenTheRequestHasNotBeenTriggeredByASamlResponseAndUserIsLoggedIn_ShouldDelegateToDefaultAuthHandler() throws XWikiException, ComponentLookupException {
+    public void whenLoggedUserInByCookieAccess_ShouldReturnTheSameLoggedInUser() throws XWikiException, ComponentLookupException {
         given()
-            .userIsLogged("ArthurDent")
+            .userIsLoggedInByCookie("ArthurDent")
         .whenAuthenticationIsVerified()
         .then()
             .authenticatedUserIs("ArthurDent");
     }
 
     @Test
-    public void whenTheRequestHasNotBeenTriggeredByASamlResponseAndLoggedUserWithLoginAction_ShouldExecuteDefaultHandler() throws XWikiException, ComponentLookupException {
+    public void whenUserIsAlreadyLoggedInTheSession_ShouldReturnSameLoggedUser() throws Exception {
         given()
-             .verifyDefaultHandlerIsInvoked("login");
+            .userIsLoggedInTheSession("ArthurDent")
+        .whenAuthenticationIsVerified()
+        .then()
+            .authenticatedUser("ArthurDent");
     }
 
     @Test
-    public void whenNoSamlAuthAndLoggedUserWithSkinAction_ShouldExecuteDefaultHandler() throws XWikiException, ComponentLookupException {
+    public void whenAnonymousUserAccessWithLoginAction_ShouldBeHandledByDefaultHandler() throws XWikiException, ComponentLookupException {
         given()
-             .verifyDefaultHandlerIsInvoked("skin");
+             .userIsAnonymous()
+             .accessWithGivenAction("login")
+        .whenUserAccess()
+        .then()
+             .verifyDefaultHandlerIsInvoked();
     }
 
     @Test
-    public void whenTheRequestHasNotBeenTriggeredByASamlResponseAndLoggedUserWithSsxAction_ShouldExecuteDefaultHandler() throws XWikiException, ComponentLookupException {
+    public void whenAnonymousUserAccessWithSkinAction_ShouldBeHandledByDefaultHandler() throws XWikiException, ComponentLookupException {
         given()
-             .verifyDefaultHandlerIsInvoked("ssx");
+                .userIsAnonymous()
+                .accessWithGivenAction("skin")
+        .whenUserAccess()
+        .then()
+                .verifyDefaultHandlerIsInvoked();
     }
 
     @Test
-    public void whenTheRequestHasNotBeenTriggeredByASamlResponseAndLoggedUserWithLogoutAction_ShouldExecuteDefaultHandler() throws XWikiException, ComponentLookupException {
+    public void whenAnonymousUserAccessWithSsxAction_ShouldBeHandledByDefaultHandler() throws XWikiException, ComponentLookupException {
         given()
-            .verifyDefaultHandlerIsInvoked("logout");
+            .userIsAnonymous()
+            .accessWithGivenAction("ssx")
+        .whenUserAccess()
+        .then()
+            .verifyDefaultHandlerIsInvoked();
     }
 
     @Test
-    public void whenNoSamlAuthAndLoggedUserWithLoginSubmitAction_ShouldExecuteDefaultHandler() throws XWikiException, ComponentLookupException {
+    public void whenAnonymousUserAccessWithLogoutAction_ShouldBeHandledByDefaultHandler() throws XWikiException, ComponentLookupException {
         given()
-           .verifyDefaultHandlerIsInvoked("loginsubmit");
+            .userIsAnonymous()
+            .accessWithGivenAction("logout")
+        .whenUserAccess()
+        .then()
+            .verifyDefaultHandlerIsInvoked();
+    }
+
+    @Test
+    public void whenAnonymousUserAccessWithLoginSubmit_ShouldBeHandledByDefaultHandler() throws XWikiException, ComponentLookupException {
+        given()
+            .userIsAnonymous()
+            .accessWithGivenAction("loginsubmit")
+        .whenUserAccess()
+        .then()
+            .verifyDefaultHandlerIsInvoked();
     }
 
     @Test
     public void whenSamlAuthPresentAndSamlAcceptsAuthenticationAndUserExists_ShouldReturnExistingUser() throws Exception {
         given()
-            .isIdentityProviderAuthentication(user -> {
+            .identityProviderAuthenticatedUser(user -> {
                 user.id = "arthur.dent@dontpanic.com";
                 user.firstName="Arthur";
                 user.lastName = "Dent";
@@ -107,12 +142,12 @@ public class SamlAuthenticatorTest {
             .samlAuthenticationHasBeenProcessed()
             .xwiki(users ->
                 users.user("ArthurDent")
-                     .hasBeenSaved()
-                     .isInGroups("UserGroup")
-                        .attributes()
-                            .firstName("Arthur")
-                            .lastName("Dent")
-                            .email("arthur.dent@dontpanic.com")
+                    .hasBeenSaved()
+                    .isInGroup("UserGroup")
+                    .attributes()
+                        .firstName("Arthur")
+                        .lastName("Dent")
+                        .email("arthur.dent@dontpanic.com")
             )
             .authenticatedUser("ArthurDent");
     }
@@ -120,7 +155,7 @@ public class SamlAuthenticatorTest {
     @Test
     public void whenSamlAuthPresentAndSamlAcceptsAuthenticationAndUserDoesntExist_ShouldCreateNewUser() throws Exception {
         given()
-            .isIdentityProviderAuthentication(user -> {
+            .identityProviderAuthenticatedUser(user -> {
                 user.id = "arthur.dent@dontpanic.com";
                 user.firstName="Arthur";
                 user.lastName = "Dent";
@@ -135,7 +170,7 @@ public class SamlAuthenticatorTest {
             .xwiki(users ->
                 users.user("ArthurDent")
                      .hasBeenSaved()
-                     .isInGroups("UserGroup")
+                     .isInGroup("UserGroup")
                      .attributes()
                         .firstName("Arthur")
                         .lastName("Dent")
@@ -147,12 +182,11 @@ public class SamlAuthenticatorTest {
     @Test
     public void whenUserExistsAndThereAreGroupsInSamlResponse_ShouldAddUserToSamlGroups() throws Exception {
         given()
-            .isIdentityProviderAuthentication(user -> {
+            .identityProviderAuthenticatedUser(user -> {
                 user.id = "arthur.dent@dontpanic.com";
                 user.firstName="Arthur";
                 user.lastName = "Dent";
                 user.newGroup = "samlGroup";
-
             })
             .xwiki(users ->
                 users.userExists("ArthurDent")
@@ -162,14 +196,14 @@ public class SamlAuthenticatorTest {
            .samlAuthenticationHasBeenProcessed()
            .xwiki(users ->
                 users.user("ArthurDent")
-                     .isInGroups("samlGroup")
+                     .isInGroup("samlGroup")
             );
     }
 
     @Test
     public void whenUserExistsAndUserHasGroupsAndThereArentGroupsInSamlResponse_ShouldRemoveUserFromGroups() throws Exception {
         given()
-            .isIdentityProviderAuthentication(user -> {
+            .identityProviderAuthenticatedUser(user -> {
                 user.id = "arthur.dent@dontpanic.com";
                 user.firstName="Arthur";
                 user.lastName = "Dent";
@@ -183,14 +217,14 @@ public class SamlAuthenticatorTest {
             .samlAuthenticationHasBeenProcessed()
             .xwiki(users ->
                 users.user("ArthurDent")
-                     .isntInGroups("samlGroup")
+                     .isntInGroup("samlGroup")
             );
     }
 
     @Test
     public void whenUserDoesntExistsAndUserHasNoGroupsAndThereAreGroupsInSamlResponse_ShouldCreateUserAndAddUserInSamlGroups() throws Exception {
         given()
-            .isIdentityProviderAuthentication(user -> {
+            .identityProviderAuthenticatedUser(user -> {
                 user.id = "arthur.dent@dontpanic.com";
                 user.firstName="arthur";
                 user.lastName = "Dent";
@@ -204,18 +238,18 @@ public class SamlAuthenticatorTest {
             .samlAuthenticationHasBeenProcessed()
             .xwiki(users ->
                 users.user("ArthurDent")
-                     .isInGroups("samlGroup")
+                     .isInGroup("samlGroup")
             );
     }
 
     @Test
     public void whenUserFirstNameIsInLowerCaseAndCapitalizeIsNotEnabled_ShouldKeepNameWithoutCapitalization() throws Exception {
         given()
-                .isIdentityProviderAuthentication(user -> {
-                    user.id = "arthur.dent@dontpanic.com";
-                    user.firstName="arthur";
-                })
-                .shouldCapitalize(false)
+            .identityProviderAuthenticatedUser(user -> {
+                user.id = "arthur.dent@dontpanic.com";
+                user.firstName="arthur";
+            })
+            .shouldCapitalize(false)
         .whenAuthenticationIsVerified()
         .then()
             .samlAuthenticationHasBeenProcessed()
@@ -225,12 +259,19 @@ public class SamlAuthenticatorTest {
     }
 
     @Test
-    public void whenUserIsAlreadyLogged_ShouldBeAuthenticated() throws Exception {
+    public void whenUserNameIsNotCapitalizedAndCapitalizationIsEnabled_ShouldCapitalize() throws Exception {
         given()
-            .userIsLoggedInTheSession("ArthurDent")
+            .identityProviderAuthenticatedUser(user -> {
+                user.id = "arthur.dent@dontpanic.com";
+                user.firstName="arthur";
+            })
+            .shouldCapitalize(true)
         .whenAuthenticationIsVerified()
         .then()
-            .authenticatedUser("ArthurDent");
+            .samlAuthenticationHasBeenProcessed()
+            .xwiki(users ->
+                users.user("Arthur")
+            );
     }
 
     private DSL given() throws XWikiException, ComponentLookupException {
@@ -302,16 +343,6 @@ public class SamlAuthenticatorTest {
                     groupManager);
 
             context.setWiki(xwiki);
-            props.putAll(
-                    Maps.newHashMap(
-                            "xwiki.authentication.saml2.sp.entityid", "",
-                            "xwiki.authentication.saml2.sp.assertion_consumer_service.url", "",
-                            "xwiki.authentication.saml2.idp.entityid", "",
-                            "xwiki.authentication.saml2.idp.single_sign_on_service.url", "",
-                            "xwiki.authentication.saml2.idp.x509cert", "",
-                            "xwiki.authentication.saml2.default_group_for_new_users", "XWiki.SamlUsers"
-                    ));
-
             xwikiStore = mock(XWikiStoreInterface.class);
             xwiki.setStore(xwikiStore);
 
@@ -337,7 +368,7 @@ public class SamlAuthenticatorTest {
             return this;
         }
 
-        public DSL userIsLogged(String loggedUserName){
+        public DSL userIsLoggedInByCookie(String loggedUserName){
             loggedWikiUser = mock(XWikiUser.class);
             when(loggedWikiUser.getFullName()).thenReturn(loggedUserName);
             when(request.getCookie("username")).thenReturn(mock(Cookie.class));
@@ -354,7 +385,7 @@ public class SamlAuthenticatorTest {
             return this;
         }
 
-        public DSL isIdentityProviderAuthentication(Consumer<IdpUserData> userConfiguration) {
+        public DSL identityProviderAuthenticatedUser(Consumer<IdpUserData> userConfiguration) {
             when(request.getParameter("SAMLResponse")).thenReturn("Some SAML Response");
             when(samlAuth.isAuthenticated()).thenReturn(true);
             IdpUserData idpUserData = new IdpUserData();
@@ -378,20 +409,23 @@ public class SamlAuthenticatorTest {
             return this;
         }
 
-        public void verifyDefaultHandlerIsInvoked(String actionToBeHandled){
-            context.setAction(actionToBeHandled);
-
-            final AtomicBoolean handled = new AtomicBoolean();
-
+        public ThenDSLForDefaultHandler whenUserAccess() {
+            final AtomicBoolean handled = new AtomicBoolean(false);
             try {
                 subject.checkAuth(context, () -> {
-                    handled.set(true);
-                    return null;
-                });
-                assertTrue(handled.get());
+                        handled.set(true);
+                        return null;
+                    }
+                );
+                return new ThenDSLForDefaultHandler(handled.get());
             }catch (XWikiException e){
-                Assertions.fail("checkAuth default verified fail");
+                throw new IllegalStateException("checkAuth default verification failed", e);
             }
+        }
+
+        public DSL accessWithGivenAction(String actionToBeHandled) {
+            context.setAction(actionToBeHandled);
+            return this;
         }
 
         public class XWikiUsersDSL {
@@ -404,7 +438,7 @@ public class SamlAuthenticatorTest {
                     throw new RuntimeException(e);
                 }
             }
-            public XWikiUsersDSL userExists(String userName){
+            public XWikiUsersDSL userExists(String userName) {
                 try {
                     when(xwikiStore.exists(any(), any())).thenReturn(true);
                     when(xwikiStore.search(anyString(), anyInt(), anyInt(), any(List.class), any()))
@@ -498,13 +532,13 @@ public class SamlAuthenticatorTest {
                         return new AssertionAttributesDSL();
                     }
 
-                    public AssertionUserDSL isInGroups(String userGroup) {
+                    public AssertionUserDSL isInGroup(String userGroup) {
                         String userName = xWikiUser.getFullName().replace("XWiki:Users.", "");
                         verify(groupManager).addUserToXWikiGroup(userName,userGroup, context);
                         return this;
                     }
 
-                    public void isntInGroups(String userGroup) {
+                    public void isntInGroup(String userGroup) {
                         String userName = xWikiUser.getFullName().replace("XWiki:Users.", "");
                         verify(groupManager).removeUserFromXWikiGroup(userName,userGroup, context);
                     }
@@ -529,6 +563,22 @@ public class SamlAuthenticatorTest {
             }
         }
     }
+
+    static class ThenDSLForDefaultHandler {
+        private final boolean defaultHandlerInvoked;
+
+        public ThenDSLForDefaultHandler(boolean defaultHandlerInvoked) {
+            this.defaultHandlerInvoked = defaultHandlerInvoked;
+        }
+
+        public void verifyDefaultHandlerIsInvoked(){
+            assertTrue(this.defaultHandlerInvoked, "Default handler not invoked");
+        }
+
+        public ThenDSLForDefaultHandler then() {
+            return this;
+        }
+    }
     
     private static class IdpUserData {
         public String id;
@@ -536,5 +586,4 @@ public class SamlAuthenticatorTest {
         public String lastName;
         public String newGroup;
     }
-
 }

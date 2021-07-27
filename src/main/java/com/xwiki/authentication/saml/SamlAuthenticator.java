@@ -24,12 +24,17 @@ import org.xwiki.model.reference.EntityReference;
 import org.xwiki.model.reference.EntityReferenceSerializer;
 import org.xwiki.rendering.syntax.Syntax;
 
-import java.io.IOException;
-import java.util.*;
-
 import static java.util.Arrays.asList;
 import static org.apache.commons.compress.utils.Sets.newHashSet;
 import static org.apache.commons.lang3.ObjectUtils.defaultIfNull;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.*;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 
 public class SamlAuthenticator {
     public static final String ORIGINAL_URL_SESSION_KEY = "saml20_url";
@@ -42,12 +47,13 @@ public class SamlAuthenticator {
     private static final String SAML_ID_XPROPERTY_NAME = "nameid";
 
     private static final Logger LOG = LoggerFactory.getLogger(SamlAuthenticator.class);
+    public static final String PROPERTY_TO_STORE_SAML_MANAGED_GROUPS = "SamlManagedGroups";
 
     private final Saml2Settings samlSettings;
     private final XwikiAuthConfig authConfig;
     private final DocumentReferenceResolver<String> currentMixedDocumentReferenceResolver;
     private final EntityReferenceSerializer<String> compactStringEntityReferenceSerializer;
-    private OneLoginAuth loginAuthFactory;
+    private final OneLoginAuth loginAuthFactory;
     private Map<String, String> userPropertiesMapping;
 
     private final XWikiGroupManager groupManager;
@@ -57,7 +63,7 @@ public class SamlAuthenticator {
                              EntityReferenceSerializer<String> compactStringEntityReferenceSerializer,
                              OneLoginAuth loginAuthFactory,
                              XWikiGroupManager groupManager) {
-        this.groupManager = groupManager;;
+        this.groupManager = groupManager;
         this.authConfig = authConfig;
         this.currentMixedDocumentReferenceResolver = currentMixedDocumentReferenceResolver;
         this.compactStringEntityReferenceSerializer = compactStringEntityReferenceSerializer;
@@ -66,7 +72,7 @@ public class SamlAuthenticator {
     }
 
     private Saml2Settings buildSamlSettings() {
-        final Properties settings = new Properties();
+        final java.util.Properties settings = new java.util.Properties();
         settings.put("onelogin.saml2.strict", true);
         settings.put("onelogin.saml2.sp.entityid", authConfig.entityId);
         settings.put("onelogin.saml2.sp.assertion_consumer_service.url", authConfig.assertionConsumerServiceUrl);
@@ -85,7 +91,7 @@ public class SamlAuthenticator {
 
         final String samlUserName = getSAMLAuthenticatedUserFromSession(context);
         if (samlUserName != null) {
-            LOG.debug("Found authenticated user [{}]", samlUserName);
+            LOG.debug("User [{}] already logged in the session.", samlUserName);
             return new XWikiUser(getUserReferenceForName(samlUserName), context.isMainWiki());
         }
         final String samlResponse = request.getParameter("SAMLResponse");
@@ -100,8 +106,7 @@ public class SamlAuthenticator {
         }
 
         try {
-            if (LOG.isDebugEnabled())
-                LOG.debug("SAML 2.0 Authentication redirection started");
+            LOG.debug("SAML 2.0 Authentication redirection started");
 
             final Auth auth = loginAuthFactory.produce(this.samlSettings, request, response);
 
@@ -115,14 +120,26 @@ public class SamlAuthenticator {
             if (auth.isAuthenticated()) {
                 final DocumentReference userReference = findOrCreateUser(context, auth);
                 if (userReference != null) {
+                    // Mark in the current session that we have authenticated the user
+                    LOG.debug("Setting authentication in session for user [{}]", userReference);
+                    context.getRequest().getSession().setAttribute(authConfig.authFieldName,
+                            this.compactStringEntityReferenceSerializer.serialize(userReference));
+
+                    // Successfully logged in, redirect to the originally requested URL
+                    final String sourceUrl = (String) request.getSession().getAttribute(ORIGINAL_URL_SESSION_KEY);
+                    LOG.debug("Redirecting after valid authentication to [{}]", sourceUrl);
+                    context.getResponse().sendRedirect(sourceUrl);
+                    context.setFinished(true);
                     LOG.debug("Found authentication of user [{}]", auth.getNameId());
                     return new XWikiUser(userReference, context.isMainWiki());
                 }
             }
-            LOG.error("Saml authentication failed {}", auth.getLastErrorReason(), auth.getLastValidationException());
+            LOG.info("Saml authentication failed {}", auth.getLastErrorReason(), auth.getLastValidationException());
         } catch (com.onelogin.saml2.exception.Error e) {
-            LOG.error("Saml authentication failed", e);
+            LOG.error("Saml authentication failed due to configuration issues", e);
+            throw new XWikiException(e.getMessage(), e);
         } catch (Exception e) {
+            LOG.error("Unexpected exception occurred", e);
             throw new XWikiException(e.getMessage(), e);
         }
 
@@ -133,13 +150,11 @@ public class SamlAuthenticator {
         return asList("login", "skin", "ssx", "logout", "loginsubmit");
     }
 
-    public String getSAMLAuthenticatedUserFromSession(XWikiContext context)
-    {
+    public String getSAMLAuthenticatedUserFromSession(XWikiContext context) {
         return (String) context.getRequest().getSession(true).getAttribute(authConfig.authFieldName);
     }
 
-    private DocumentReference findOrCreateUser(XWikiContext context, Auth auth) throws XWikiException, IOException {
-        final XWikiRequest request = context.getRequest();
+    private DocumentReference findOrCreateUser(XWikiContext context, Auth auth) throws XWikiException {
         final Map<String, String> samlAttributes = new HashMap<>();
 
         try {
@@ -152,7 +167,6 @@ public class SamlAuthenticator {
             throw e1;
         }
 
-        // let's map the data
         final Map<String, String> xwikiAttributes = mapToXwikiAttributes(samlAttributes);
         final String nameID = auth.getNameId();
         if (LOG.isDebugEnabled()) {
@@ -163,8 +177,6 @@ public class SamlAuthenticator {
         final DocumentReference userReference = getLocalUsername(nameID, xwikiAttributes, context);
         if (userReference == null)
             return null;
-
-        final XWikiDocument userDoc = context.getWiki().getDocument(userReference, context);
 
         // we found a user or generated a unique user name
         // check if we need to create/update a user page
@@ -185,30 +197,17 @@ public class SamlAuthenticator {
         } finally {
             context.setWikiId(database);
         }
-        syncUserGroups(context, samlAttributes, userReference, userDoc);
-
-        // Mark in the current session that we have authenticated the user
-        LOG.debug("Setting authentication in session for user [{}]", userReference);
-        context.getRequest().getSession().setAttribute(authConfig.authFieldName,
-                this.compactStringEntityReferenceSerializer.serialize(userReference));
-
-        // Successfully logged in, redirect to the originally requested URL
-        final String sourceUrl = (String) request.getSession().getAttribute(ORIGINAL_URL_SESSION_KEY);
-        LOG.debug("Redirecting after valid authentication to [{}]", sourceUrl);
-        context.getResponse().sendRedirect(sourceUrl);
-        context.setFinished(true);
+        syncUserGroups(context, samlAttributes, userReference);
         return userReference;
     }
 
-    private void syncUserGroups(XWikiContext context, Map<String, String> attributes, DocumentReference userReference, XWikiDocument userDoc) throws XWikiException {
+    private void syncUserGroups(XWikiContext context, Map<String, String> attributes, DocumentReference userReference) throws XWikiException {
+        final XWikiDocument userDoc = context.getWiki().getDocument(userReference, context);
         final Set<String> groupsFromSaml = newHashSet((defaultIfNull(attributes.get("XWikiGroups"), "")).split(","));
         groupsFromSaml.add(authConfig.defaultGroupForNewUsers);
 
         final BaseObject userObj = userDoc.getXObject(USER_XCLASS);
-        if (userObj == null)
-            return;
-
-        final Optional<StringProperty> samlManagedGroupsProp = Optional.ofNullable((StringProperty) userObj.get("SamlManagedGroups"));
+        final Optional<StringProperty> samlManagedGroupsProp = Optional.ofNullable((StringProperty) userObj.get(PROPERTY_TO_STORE_SAML_MANAGED_GROUPS));
 
         final Set<String> previousManagedGroups = newHashSet(samlManagedGroupsProp.map(StringProperty::getValue).orElse("").split(","));
         previousManagedGroups.removeAll(groupsFromSaml);
@@ -225,27 +224,30 @@ public class SamlAuthenticator {
         final BaseObject userObj = userDoc.getXObject(USER_XCLASS);
         boolean updated = false;
 
-        for (Map.Entry<String, String> entry : userData.entrySet()) {
-            String field = entry.getKey();
-            String value = entry.getValue();
-            BaseProperty<?> prop = (BaseProperty<?>) userObj.get(field);
-            String currentValue = (prop == null || prop.getValue() == null) ? null : prop.getValue().toString();
-            if (value != null && !value.equals(currentValue)) {
-                userObj.set(field, value, context);
-                updated = true;
-            }
+        for (Entry<String, String> entry : userData.entrySet()) {
+            final String field = entry.getKey();
+            final String value = entry.getValue();
+            final BaseProperty<?> prop = (BaseProperty<?>) userObj.get(field);
+            final String currentValue = (prop == null || prop.getValue() == null) ? null : prop.getValue().toString();
+            if (Objects.equals(value,currentValue))
+                continue;
+            userObj.set(field, value, context);
+            updated = true;
         }
 
         if (updated) {
             context.getWiki().saveDocument(userDoc, context);
-            LOG.debug("User [{}] has been successfully updated", userReference);
+            LOG.info("User [{}] has been successfully updated", userReference);
         }
     }
 
-    private boolean createUser(XWikiContext context, Map<String, String> xwikiAttributes, String nameID, DocumentReference userReference) throws XWikiException {
+    private boolean createUser(XWikiContext context,
+                               Map<String, String> xwikiAttributes,
+                               String nameID,
+                               DocumentReference userReference)
+            throws XWikiException {
         LOG.info("Will create new user [{}]", userReference);
 
-        // create user
         xwikiAttributes.put("active", "1");
 
         String content = "{{include document=\"XWiki.XWikiUserSheet\"/}}";
@@ -270,21 +272,34 @@ public class SamlAuthenticator {
         return true;
     }
 
-    private DocumentReference getLocalUsername(String nameID, Map<String, String> xwikiAttributes, XWikiContext context)
+    private DocumentReference getLocalUsername(String nameID,
+                                               Map<String, String> xwikiAttributes,
+                                               XWikiContext context)
             throws XWikiException
     {
-        final String sql = "select distinct obj.name from BaseObject as obj, StringProperty as nameidprop "
-                + "where obj.className=?1 and obj.id=nameidprop.id.id and nameidprop.id.name=?2 and nameidprop.value=?3";
+        final String sql = "SELECT DISTINCT " +
+                "   obj.name " +
+                "FROM " +
+                "   BaseObject AS obj, StringProperty AS nameidprop " +
+                "WHERE " +
+                "   obj.className = ?1 " +
+                "AND " +
+                "   obj.id = nameidprop.id.id " +
+                "AND " +
+                "   nameidprop.id.name = ?2 " +
+                "AND " +
+                "   nameidprop.value = ?3";
+
         final List<String> list = context.getWiki().getStore().search(sql, 1, 0,
                 asList(this.compactStringEntityReferenceSerializer.serialize(SAML_XCLASS),
                         SAML_ID_XPROPERTY_NAME, nameID), context);
         final String validUserName;
 
-        if (list.size() == 0) {
+        if (list.isEmpty()) {
             // User does not exist. Let's generate a unique page name
             LOG.debug("Did not find XWiki User. Generating it.");
-            String userName = generateXWikiUsername(xwikiAttributes);
-            if (userName.equals(""))
+            final String userName = generateXWikiUsername(xwikiAttributes);
+            if (userName.isEmpty())
                 throw new XWikiException(
                         "Could not generate a username for user " + nameID,
                         new IllegalStateException("Could not generate a username for user "));
@@ -305,56 +320,48 @@ public class SamlAuthenticator {
         return this.currentMixedDocumentReferenceResolver.resolve(validUserName, PROFILE_PARENT);
     }
 
-
-
-    private Map<String, String> mapToXwikiAttributes(Map<String, String> samlAttributes)
-    {
+    private Map<String, String> mapToXwikiAttributes(Map<String, String> samlAttributes) {
         final Map<String, String> extInfos = new HashMap<>();
-        for (Map.Entry<String, String> entry : getFieldMapping().entrySet()) {
-            String dataValue = samlAttributes.get(entry.getKey());
+        for (Entry<String, String> mapping : getSamlToXwikiMapping().entrySet()) {
+            final String samlAttributeValue = samlAttributes.get(mapping.getKey());
 
-            if (dataValue != null)
-                extInfos.put(entry.getValue(), dataValue);
+            if (samlAttributeValue != null)
+                extInfos.put(mapping.getValue(), samlAttributeValue);
         }
         return extInfos;
     }
 
-    private String generateXWikiUsername(Map<String, String> userData)
-    {
+    private String generateXWikiUsername(Map<String, String> userData) {
         final StringBuilder userName = new StringBuilder();
 
-        for (String field : this.authConfig.userNameRule) {
-            String value = userData.get(field);
-            if (StringUtils.isNotBlank(value)) {
-                if (this.authConfig.shouldCapitalizeUserNames) {
-                    userName.append(StringUtils.trim(StringUtils.capitalize(value)));
-                } else {
-                    userName.append(StringUtils.trim(value));
-                }
-            }
+        for (String field : authConfig.userNameRule) {
+            String value = StringUtils.trim(userData.get(field));
+            if (StringUtils.isBlank(value))
+                continue;
+
+            if (authConfig.shouldCapitalizeUserNames)
+                value = StringUtils.capitalize(value);
+
+            userName.append(value);
         }
         return userName.toString();
     }
 
-    /**
-     * @return the mapping between HTTP header fields names and XWiki user profile fields names.
-     */
-    private Map<String, String> getFieldMapping()
-    {
-        if (this.userPropertiesMapping == null) {
-            this.userPropertiesMapping = new HashMap<>();
+    private Map<String, String> getSamlToXwikiMapping() {
+        if (this.userPropertiesMapping != null)
+            return this.userPropertiesMapping;
 
-            for (String f : authConfig.fieldMapping) {
-                String[] field = f.split("=");
-                if (2 == field.length) {
-                    String xwikiPropertyName = field[0].trim();
-                    String samlAttributeName = field[1].trim();
-
-                    this.userPropertiesMapping.put(samlAttributeName, xwikiPropertyName);
-                } else {
-                    LOG.error("Error parsing SAML fields_mapping attribute in xwiki.cfg: [{}]", f);
-                }
+        this.userPropertiesMapping = new HashMap<>();
+        for (String fieldMapping : authConfig.fieldMapping) {
+            final String[] fieldAndValue = fieldMapping.split("=");
+            if (fieldAndValue.length != 2) {
+                LOG.error("Error parsing SAML fields_mapping attribute in xwiki.cfg: [{}]", fieldMapping);
+                continue;
             }
+            final String xwikiPropertyName = fieldAndValue[0].trim();
+            final String samlAttributeName = fieldAndValue[1].trim();
+
+            this.userPropertiesMapping.put(samlAttributeName, xwikiPropertyName);
         }
 
         return this.userPropertiesMapping;
