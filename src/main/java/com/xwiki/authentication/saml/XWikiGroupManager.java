@@ -19,33 +19,14 @@
  */
 package com.xwiki.authentication.saml;
 
-import com.xpn.xwiki.XWiki;
 import com.xpn.xwiki.XWikiContext;
 import com.xpn.xwiki.XWikiException;
-import com.xpn.xwiki.doc.XWikiDocument;
-import com.xpn.xwiki.objects.BaseObject;
-import com.xpn.xwiki.objects.classes.BaseClass;
-import java.util.Collections;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xwiki.model.EntityType;
-import org.xwiki.model.reference.DocumentReference;
 import org.xwiki.model.reference.DocumentReferenceResolver;
-import org.xwiki.model.reference.EntityReference;
-import org.xwiki.rendering.syntax.Syntax;
-
-import java.util.List;
-import static java.util.Collections.singletonMap;
 
 public class XWikiGroupManager {
     private static final Logger LOG = LoggerFactory.getLogger(XWikiGroupManager.class);
-    private static final String XWIKI_GROUP_MEMBERFIELD = "member";
-
-    private static final EntityReference GROUP_PARENT = new EntityReference("XWikiGroups", EntityType.DOCUMENT,
-            new EntityReference(XWiki.SYSTEM_SPACE, EntityType.SPACE));
     private final DocumentReferenceResolver<String> groupResolver;
 
     public XWikiGroupManager(DocumentReferenceResolver<String> groupResolver) {
@@ -89,7 +70,7 @@ public class XWikiGroupManager {
                 if (group.isNew())
                     group.setupNewGroupDocument();
 
-                group.saveGroup();
+                group.save();
 
                 LOG.debug("Finished adding user [{}] to xwiki group [{}]", xwikiUserName, groupName);
             } catch (Exception e) {
@@ -108,7 +89,7 @@ public class XWikiGroupManager {
 
                 group.removeUser(xwikiUserName);
 
-                group.saveGroup();
+                group.save();
 
             } catch (Exception e) {
                 LOG.error("Failed to remove a user from a group [{}] group: [{}]", xwikiUserName, groupName, e);
@@ -116,74 +97,4 @@ public class XWikiGroupManager {
         }
     }
 
-    static class Group {
-        private final XWikiDocument groupDoc;
-        private final XWikiContext context;
-        private final DocumentReferenceResolver<String> groupResolver;
-
-        public Group(String groupName, XWikiContext context, DocumentReferenceResolver<String> groupResolver) throws XWikiException {
-            this.groupResolver = groupResolver;
-            this.groupDoc = context.getWiki().getDocument(getGroupReferenceForName(groupName), context);
-            this.context = context;
-        }
-
-        public boolean hasMember(String xwikiUserName) throws XWikiException {
-            return getGroupMembers(groupDoc).stream()
-                    .anyMatch(groupMember -> Objects.equals(getMemberName(groupMember), xwikiUserName));
-        }
-
-        private String getMemberName(BaseObject groupMember) {
-            return groupMember.getStringValue(XWIKI_GROUP_MEMBERFIELD);
-        }
-
-        private List<BaseObject> getGroupMembers(XWikiDocument groupDoc) throws XWikiException {
-            final List<BaseObject> groupMembers = groupDoc.getXObjects(getGroupClass().getDocumentReference());
-            if (groupMembers == null)
-                return Collections.emptyList();
-
-            return groupMembers.stream().filter(Objects::nonNull).collect(Collectors.toList());
-        }
-
-        public String groupName() {
-            return groupDoc.getDocumentReference().getName();
-        }
-
-        public void addMember(String xwikiUserName) throws XWikiException {
-            addMemberToGroup(xwikiUserName);
-        }
-
-        private void addMemberToGroup(String xwikiUserName) throws XWikiException {
-            BaseObject memberObj = groupDoc.newXObject(getGroupClass().getDocumentReference(), context);
-            getGroupClass().fromMap(singletonMap(XWIKI_GROUP_MEMBERFIELD, xwikiUserName), memberObj);
-        }
-
-        private BaseClass getGroupClass() throws XWikiException {
-            return context.getWiki().getGroupClass(context);
-        }
-
-        public boolean isNew() {
-            return groupDoc.isNew();
-        }
-
-        private void setupNewGroupDocument() {
-            groupDoc.setSyntax(Syntax.XWIKI_2_0);
-            groupDoc.setContent("{{include reference='XWiki.XWikiGroupSheet' /}}");
-        }
-
-        public void saveGroup() throws XWikiException {
-            context.getWiki().saveDocument(groupDoc, context);
-        }
-
-        public void removeUser(String xwikiUserName) throws XWikiException {
-            getUserMembership(xwikiUserName).map(groupDoc::removeXObject);
-        }
-
-        private Optional<BaseObject> getUserMembership(String xwikiUserName) throws XWikiException {
-            return Optional.ofNullable(groupDoc.getXObject(getGroupClass().getDocumentReference(), XWIKI_GROUP_MEMBERFIELD, xwikiUserName));
-        }
-
-        private DocumentReference getGroupReferenceForName(String validGroupName) {
-            return groupResolver.resolve(validGroupName, GROUP_PARENT);
-        }
-    }
 }

@@ -19,7 +19,7 @@ with your instructions.
 
 ## Dev Setup Quick Start
 
-If you want to test the plugin by yourself, go to our [Dev Quick Start](dev-quick-start.md) and follow
+If you want to test the plugin by yourself, go to our [Dev Quick Start](quick-start/README.md) and follow
 the instructions to set up a complete local environment. 
 
 # Reference of plugin configurations on xwiki.cfg
@@ -96,7 +96,7 @@ Controls whether username generation should capitalize each of the  xwiki_user_r
 `xwiki.authentication.saml2.sp.nameidformat=urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress`
 
 This field determines which IDP's field will be used to identify the user in XWiki. When a user authenticates, 
-this value will be stored in the field specified by ```xwiki.authentication.saml2.auth_field``` property
+this value will be stored in the field specified by `xwiki.authentication.saml2.auth_field` property
 
 
 

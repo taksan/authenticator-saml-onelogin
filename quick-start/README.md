@@ -21,7 +21,7 @@ $ docker-compose up -d
     + Go to Administration menu, select User and click over anonymous user.
         + Add nx-amin role to the annymous user.
 
-![nexus_anonymous](images/nexus_anonymous.png)
+![nexus_anonymous](../images/nexus_anonymous.png)
 
 + Build the extension to populate the repository with the current version.
 
@@ -31,7 +31,7 @@ mvn clean deploy -DaltDeploymentRepository=repo::default::http://localhost:8081/
 
 + Check out the Nexus repository
 
-![nexus_repository](images/nexus_repository.png)
+![nexus_repository](../images/nexus_repository.png)
 
 ## Keycloak
 
@@ -45,15 +45,15 @@ mvn clean deploy -DaltDeploymentRepository=repo::default::http://localhost:8081/
     + Import ```realm-export.json``` file from quick-start folder.
         + Check ```Enable``` option and click over ```Create``` button.  
 
-![keycloak_add_healm](images/keycloak_add_healm.png)
+![keycloak_add_healm](../images/keycloak_add_healm.png)
 
 + Create a new user.
 
-![keycloak_user](images/keycloak_user.png)
+![keycloak_user](../images/keycloak_user.png)
 
 + Add password to user
 
-![keycloak_user_password](images/keycloak_user_password.png)
+![keycloak_user_password](../images/keycloak_user_password.png)
 
 
 
@@ -62,7 +62,7 @@ mvn clean deploy -DaltDeploymentRepository=repo::default::http://localhost:8081/
 + URL: http://localhost:8080
 + Complete the instalations quick-start of XWiki
 
-![xwiki_instalation](images/xwiki_instalation.png)
+![xwiki_instalation](../images/xwiki_instalation.png)
 
 
 + Run the following command inside the quick-start folder:
@@ -73,14 +73,14 @@ $ ./setup.sh
 + Next step is go to Administer Wiki menu and Extensions.
     + Wait for the indexing completed.
     
-    ![xwiki_extension_indexing](images/xwiki_extension_indexing.png)
+    ![xwiki_extension_indexing](../images/xwiki_extension_indexing.png)
 
     + To find the extension, click on the "More" button and then on Advanced search link:
         + EXTENSION ID: org.xwiki.contrib.authentication:xwiki-authenticator-saml20
         + VERSION: 1.0-SNAPSHOT
     + CLick over the install button and wait until finish the instalation process.
 
-![xwiki_extension](images/xwiki_extension.png)
+![xwiki_extension](../images/xwiki_extension.png)
 
 + Run the following command inside the quick-start folder:
 
@@ -94,13 +94,30 @@ docker-compose restart web
 
 ## Manual Setup
 
+Follow the instructions to set up a complete local environment.
+
+### Requirements
+
+Requirement  | Minimum version
+------------ | -------------
+Java    | 8
+Maven   | 3.8
+Docker  | 20
+Curl    | 7
+
+### Permissions
+
+```
+$ chmod +x setup.sh
+```
+
 1. Build the project
 
 ```sh
 mvn clean install
 ```
 
-2. Create a folder to store the maven repository files for you wiki. Let's assume for this example it will be in the following place
+2. Create a folder to store the maven repository files for your wiki. Let's assume for this example it will be in the following place
 
 ```sh
 /usr/local/xwiki/data/repo/org/xwiki/contrib/authentication/xwiki-authenticator-saml20/1.0-SNAPSHOT
