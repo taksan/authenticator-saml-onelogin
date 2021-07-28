@@ -132,18 +132,18 @@ public class XWikiGroupManagerTest {
         }
         public ThenDSL whenAddedToGroup(){
             groupManager = new XWikiGroupManager(currentMixedDocumentReferenceResolver);
-            groupManager.addUserToXWikiGroup(userName,groupName,context);
+            groupManager.addUserToGroup(userName,groupName,context);
             return new ThenDSL();
         }
         public ThenDSL whenRemoveFromGroup(){
             groupManager = new XWikiGroupManager(currentMixedDocumentReferenceResolver);
-            groupManager.removeUserFromXWikiGroup(userName,groupName,context);
+            groupManager.removeUserFromGroup(userName,groupName,context);
             return new ThenDSL();
         }
 
         public DSL userIsAlreadyInGroup(String userName, String groupName) {
             groupManager = new XWikiGroupManager(currentMixedDocumentReferenceResolver);
-            groupManager.addUserToXWikiGroup(userName,groupName,context);
+            groupManager.addUserToGroup(userName,groupName,context);
             return this;
         }
 

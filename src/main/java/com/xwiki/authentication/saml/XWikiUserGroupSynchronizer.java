@@ -32,12 +32,12 @@ import static com.xwiki.authentication.saml.SamlAuthenticationResponseHandler.PR
 import static com.xwiki.authentication.saml.SamlAuthenticationResponseHandler.USER_XCLASS;
 import static org.apache.commons.compress.utils.Sets.newHashSet;
 
-public class XWikiGroupsUserManager {
+public class XWikiUserGroupSynchronizer {
 
     private final XWikiGroupManager groupManager;
     private final XWikiContext context;
 
-    public XWikiGroupsUserManager(XWikiGroupManager groupManager, XWikiContext context) {
+    public XWikiUserGroupSynchronizer(XWikiGroupManager groupManager, XWikiContext context) {
         this.groupManager = groupManager;
         this.context = context;
     }
@@ -46,14 +46,14 @@ public class XWikiGroupsUserManager {
         final XWikiDocument userDoc = context.getWiki().getDocument(userReference, context);
         final BaseObject userObj = userDoc.getXObject(USER_XCLASS);
 
-        removeUserFromGroupsMissingFromSamlGroups(userReference, userObj, attributes);
+        removeUserFromGroupsMissingInSamlGroups(userReference, userObj, attributes);
 
         addUserToGroupsInSamlGroups(userReference, attributes);
 
         saveUserWithUpdatedGroups(userDoc, userObj, attributes);
     }
 
-    private void removeUserFromGroupsMissingFromSamlGroups(
+    private void removeUserFromGroupsMissingInSamlGroups(
             DocumentReference userReference,
             BaseObject userObj,
             Saml2XwikiAttributes attributes)
@@ -62,11 +62,11 @@ public class XWikiGroupsUserManager {
         final Optional<StringProperty> samlManagedGroupsProp = Optional.ofNullable((StringProperty) userObj.get(PROPERTY_TO_STORE_SAML_MANAGED_GROUPS));
         final Set<String> previousManagedGroups = newHashSet(samlManagedGroupsProp.map(StringProperty::getValue).orElse("").split(","));
         previousManagedGroups.removeAll(attributes.groupsFromSaml);
-        previousManagedGroups.forEach(group -> groupManager.removeUserFromXWikiGroup(userReference.getName(), group, context));
+        previousManagedGroups.forEach(group -> groupManager.removeUserFromGroup(userReference.getName(), group, context));
     }
 
     private void addUserToGroupsInSamlGroups(DocumentReference userReference, Saml2XwikiAttributes attributes) {
-        attributes.groupsFromSaml.forEach(group -> groupManager.addUserToXWikiGroup(userReference.getName(), group, context));
+        attributes.groupsFromSaml.forEach(group -> groupManager.addUserToGroup(userReference.getName(), group, context));
     }
 
     private void saveUserWithUpdatedGroups(XWikiDocument userDoc, BaseObject userObj, Saml2XwikiAttributes attributes) throws XWikiException {

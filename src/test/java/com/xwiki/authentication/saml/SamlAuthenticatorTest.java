@@ -37,7 +37,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
 import org.slf4j.LoggerFactory;
-import org.testcontainers.shaded.org.apache.commons.lang.NotImplementedException;
 import org.xwiki.component.manager.ComponentLookupException;
 import org.xwiki.component.manager.ComponentManager;
 import org.xwiki.model.reference.DocumentReference;
@@ -595,13 +594,13 @@ public class SamlAuthenticatorTest {
 
                     public AssertionUserDSL isInGroup(String userGroup) {
                         String userName = xWikiUser.getFullName().replace("XWiki:Users.", "");
-                        verify(groupManager).addUserToXWikiGroup(userName,userGroup, context);
+                        verify(groupManager).addUserToGroup(userName,userGroup, context);
                         return this;
                     }
 
                     public void isntInGroup(String userGroup) {
                         String userName = xWikiUser.getFullName().replace("XWiki:Users.", "");
-                        verify(groupManager).removeUserFromXWikiGroup(userName,userGroup, context);
+                        verify(groupManager).removeUserFromGroup(userName,userGroup, context);
                     }
 
                     class AssertionAttributesDSL {

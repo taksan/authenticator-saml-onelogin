@@ -99,8 +99,7 @@ public class SamlAuthenticationResponseHandler {
      private XWikiUser setupAuthenticatedUser(Saml2XwikiAttributes attributes) throws IOException, XWikiException {
         final DocumentReference userReference = xWikiUserManager.getOrCreateUserIfNeeded(context, attributes);
 
-         XWikiGroupsUserManager xWikiGroupsUserManager = new XWikiGroupsUserManager(groupManager, context);
-         xWikiGroupsUserManager.syncUserGroups(userReference, attributes);
+         new XWikiUserGroupSynchronizer(groupManager, context).syncUserGroups(userReference, attributes);
 
         addUserToTheSession(userReference);
         redirectToOriginalRequestedUrl();
@@ -108,6 +107,7 @@ public class SamlAuthenticationResponseHandler {
         LOG.info("User [{}] authentication complete", attributes.nameID);
         return new XWikiUser(userReference, context.isMainWiki());
     }
+
     private void addUserToTheSession(DocumentReference userReference) {
         LOG.debug("Setting authentication in session for user [{}]", userReference);
         context.getRequest().getSession().setAttribute(authConfig.authFieldName,

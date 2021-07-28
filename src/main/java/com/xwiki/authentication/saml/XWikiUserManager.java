@@ -70,34 +70,44 @@ public class XWikiUserManager {
         }
 
         public DocumentReference getOrCreateUserIfNeeded() throws XWikiException {
-            final DocumentReference userReference = getXWikiUsername(attributes.nameID);
+            final User user = getXWikiUsername(attributes.nameID);
 
             final String wikiId = context.getWikiId();
             try {
                 // Switch to main wiki to force users to be global users
                 context.setWikiId(context.getMainXWiki());
 
-                if (context.getWiki().exists(userReference, context))
-                    return syncUserFields(userReference);
+                if(user.exists())
+                    return syncUserFields(user);
 
-                return createUser(attributes.nameID, userReference);
+                return createUserWithAttributes(user,attributes);//attributes.nameID, userReference);
             } finally {
                 context.setWikiId(wikiId);
             }
         }
 
-        private DocumentReference getXWikiUsername(String nameID)
+        private DocumentReference createUserWithAttributes(User user, Saml2XwikiAttributes attributes) throws XWikiException {
+            LOG.info("Will create new user [{}]", user);
+
+            user.createUserWithAttributes(attributes.xwikiAttributes);
+
+            LOG.info("User [{}] has been successfully created", user);
+
+            return user.getUserReference();
+        }
+
+        private User getXWikiUsername(String nameID)
                 throws XWikiException{
             final Optional<String> validUserName = findUser(nameID);
 
             if (validUserName.isPresent()) {
                 LOG.debug("Found XWiki User [{}]", validUserName.get());
-                return getUserReferenceForName(validUserName.get());
+                return new User(nameID, getUserReferenceForName(validUserName.get()), context);
             }
             final String generatedUserName = generateValidUserName(nameID);
             LOG.debug("Generated XWiki User [{}]", generatedUserName);
 
-            return getUserReferenceForName(generatedUserName);
+            return new User(nameID, getUserReferenceForName(generatedUserName), context);
         }
 
         private Optional<String> findUser(String nameID) throws XWikiException {
@@ -165,30 +175,60 @@ public class XWikiUserManager {
             return userName.toString();
         }
 
-        private DocumentReference syncUserFields(DocumentReference userReference)
+        private DocumentReference syncUserFields(User user)
                 throws XWikiException {
 
-            final XWikiDocument userDoc = context.getWiki().getDocument(userReference, context);
-            final BaseObject userObj = userDoc.getXObject(USER_XCLASS);
             boolean updated = false;
 
             for (Map.Entry<String, String> entry : attributes.xwikiAttributes.entrySet()) {
                 final String field = entry.getKey();
                 final String newValue = entry.getValue();
-                final String currentValue = getUserProperty(userObj, field);
-
+                final String currentValue = user.getFieldValue(field);
                 if (Objects.equals(newValue, currentValue))
                     continue;
 
-                userObj.set(field, newValue, context);
+                user.setFieldValue(field, newValue);
                 updated = true;
             }
 
             if (updated) {
-                context.getWiki().saveDocument(userDoc, context);
-                LOG.info("User [{}] has been successfully updated", userReference);
+                user.save();
+                LOG.info("User [{}] has been successfully updated", user.getUserReference());
             }
+            return user.getUserReference();
+        }
+
+    }
+    static class User {
+
+        private final String nameID;
+        private final DocumentReference userReference;
+        private final XWikiContext context;
+        private final XWikiDocument userDoc;
+        private final BaseObject userObj;
+
+        public User(String nameID, DocumentReference userReferenceForName, XWikiContext context) throws XWikiException {
+            this.nameID = nameID;
+            this.userReference = userReferenceForName;
+            this.context = context;
+            this.userDoc = context.getWiki().getDocument(userReference, context);
+            this.userObj = userDoc.getXObject(USER_XCLASS);
+        }
+
+        public boolean exists() {
+            return context.getWiki().exists(userReference, context);
+        }
+
+        public DocumentReference getUserReference(){
             return userReference;
+        }
+
+        public String getFieldValue(String field) throws XWikiException {
+            return getUserProperty(userObj, field);
+        }
+
+        public void setFieldValue(String field, String newValue) {
+            userObj.set(field, newValue, context);
         }
 
         private String getUserProperty(BaseObject userObj, String field) throws XWikiException {
@@ -196,11 +236,13 @@ public class XWikiUserManager {
             return (prop == null || prop.getValue() == null) ? null : prop.getValue().toString();
         }
 
-        private DocumentReference createUser(String nameID,
-                                             DocumentReference userReference)
+        public void save() throws XWikiException {
+            context.getWiki().saveDocument(userDoc, context);
+        }
+
+        private void createUserWithAttributes(Map<String, String> xwikiAttributes)
                 throws XWikiException {
-            LOG.info("Will create new user [{}]", userReference);
-            final Map<String, String> newXwikiAttributes = new HashMap<>(attributes.xwikiAttributes);
+            final Map<String, String> newXwikiAttributes = new HashMap<>(xwikiAttributes);
             newXwikiAttributes.put("active", "1");
 
             final String content = "{{include document=\"XWiki.XWikiUserSheet\"/}}";
@@ -214,21 +256,16 @@ public class XWikiUserManager {
                     "edit",
                     context);
 
-            if (result < 0) {
-                LOG.error("Failed to create user [{}] with code [{}]", userReference, result);
+            if (result < 0)
                 throw new XWikiException(
                         MODULE_XWIKI_PLUGINS,
                         ERROR_XWIKI_USER_CREATE,
                         "XWiki failed to create user [" + nameID + "]. Error code [" + result + "]");
-            }
 
-            associateSamlUserWithXwikiUser(nameID, userReference);
-
-            LOG.info("User [{}] has been successfully created", userReference);
-            return userReference;
+            associateSamlUserWithXwikiUser();
         }
-        private void associateSamlUserWithXwikiUser(String nameID, DocumentReference userReference) throws XWikiException {
-            final XWikiDocument userDoc = context.getWiki().getDocument(userReference, context);
+
+        private void associateSamlUserWithXwikiUser() throws XWikiException {
             final BaseObject samlIdObject = userDoc.newXObject(SAML_XCLASS, context);
             @SuppressWarnings("rawtypes")
             final BaseProperty samlIdProp = new StringClass().fromString(nameID);
@@ -236,5 +273,15 @@ public class XWikiUserManager {
             samlIdObject.safeput(SAML_ID_XPROPERTY_NAME, samlIdProp);
             context.getWiki().saveDocument(userDoc, context);
         }
+
+        @Override
+        public String toString() {
+            return userReference.toString();
+        }
+
+        public String getName() {
+            return userReference.getName();
+        }
+
     }
 }
