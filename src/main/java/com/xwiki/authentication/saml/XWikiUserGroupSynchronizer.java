@@ -62,11 +62,13 @@ public class XWikiUserGroupSynchronizer {
         final Optional<StringProperty> samlManagedGroupsProp = Optional.ofNullable((StringProperty) userObj.get(PROPERTY_TO_STORE_SAML_MANAGED_GROUPS));
         final Set<String> previousManagedGroups = newHashSet(samlManagedGroupsProp.map(StringProperty::getValue).orElse("").split(","));
         previousManagedGroups.removeAll(attributes.groupsFromSaml);
-        previousManagedGroups.forEach(group -> groupManager.removeUserFromGroup(userReference.getName(), group, context));
+        for (String group: previousManagedGroups)
+            groupManager.removeUserFromGroup(userReference.getName(), group, context);
     }
 
-    private void addUserToGroupsInSamlGroups(DocumentReference userReference, Saml2XwikiAttributes attributes) {
-        attributes.groupsFromSaml.forEach(group -> groupManager.addUserToGroup(userReference.getName(), group, context));
+    private void addUserToGroupsInSamlGroups(DocumentReference userReference, Saml2XwikiAttributes attributes) throws XWikiException {
+        for (String group: attributes.groupsFromSaml)
+            groupManager.addUserToGroup(userReference.getName(), group, context);
     }
 
     private void saveUserWithUpdatedGroups(XWikiDocument userDoc, BaseObject userObj, Saml2XwikiAttributes attributes) throws XWikiException {

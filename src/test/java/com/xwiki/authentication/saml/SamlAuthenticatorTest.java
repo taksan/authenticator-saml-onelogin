@@ -60,9 +60,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 public class SamlAuthenticatorTest {
     @Test
@@ -319,6 +317,8 @@ public class SamlAuthenticatorTest {
             .throwsUserCreationFailedException("XWiki failed to create user [arthur.dent@dontpanic.com]. Error code [-3]");
     }
 
+
+
     private DSL given() throws XWikiException, ComponentLookupException {
         return new DSL();
     }
@@ -402,7 +402,7 @@ public class SamlAuthenticatorTest {
             return this;
         }
 
-        public DSL xwiki(Consumer<XWikiUsersDSL> configuration) {
+        public DSL xwiki(ConsumerWithThrowable<XWikiUsersDSL,Exception> configuration) throws Exception {
             configuration.accept(new XWikiUsersDSL());
             return this;
         }
@@ -498,16 +498,12 @@ public class SamlAuthenticatorTest {
                 }
                 return this;
             }
-            public void userHasGroup(String groupName) {
-                try{
-                    when(xwiki.baseObjectMock.get("SamlManagedGroups")).thenReturn(new StringClass().fromString(groupName));
-                }catch (XWikiException e){
-                    throw new RuntimeException(e);
-                }
+            public void userHasGroup(String groupName) throws XWikiException {
+                when(xwiki.baseObjectMock.get("SamlManagedGroups")).thenReturn(new StringClass().fromString(groupName));
             }
         }
 
-        public ThenDSL whenAuthenticationIsVerified() throws XWikiException {
+        public ThenDSL whenAuthenticationIsVerified() {
             ConfigurationSourceWithProperties cfg = new ConfigurationSourceWithProperties();
             cfg.setFromProperties(props);
             XwikiAuthConfig authConfig = XwikiAuthConfig.from(cfg);
@@ -540,7 +536,7 @@ public class SamlAuthenticatorTest {
                 this.xWikiException = xWikiException;
             }
 
-            public ThenDSL xwiki(Consumer<AssertionUsersDSL> assertionUsers) {
+            public ThenDSL xwiki(ConsumerWithThrowable<AssertionUsersDSL,Exception> assertionUsers) throws Exception {
                 assertionUsers.accept(new AssertionUsersDSL());
                 return this;
             }
@@ -592,13 +588,13 @@ public class SamlAuthenticatorTest {
                         return new AssertionAttributesDSL();
                     }
 
-                    public AssertionUserDSL isInGroup(String userGroup) {
+                    public AssertionUserDSL isInGroup(String userGroup) throws XWikiException {
                         String userName = xWikiUser.getFullName().replace("XWiki:Users.", "");
                         verify(groupManager).addUserToGroup(userName,userGroup, context);
                         return this;
                     }
 
-                    public void isntInGroup(String userGroup) {
+                    public void isntInGroup(String userGroup) throws XWikiException {
                         String userName = xWikiUser.getFullName().replace("XWiki:Users.", "");
                         verify(groupManager).removeUserFromGroup(userName,userGroup, context);
                     }

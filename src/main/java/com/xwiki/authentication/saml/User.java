@@ -104,13 +104,8 @@ public class User {
         @SuppressWarnings("rawtypes")
         final BaseProperty samlIdProp = new StringClass().fromString(nameID);
         samlIdProp.setOwnerDocument(samlIdObject.getOwnerDocument());
-        samlIdObject.safeput(SAML_ID_XPROPERTY_NAME, samlIdProp);
+        samlIdObject.safeput(XWikiUserManager.SAML_ID_XPROPERTY_NAME, samlIdProp);
 
-        context.getWiki().saveDocument(userDoc, context);
-    }
-
-    @Override
-    public String toString() {
-        return userReference.toString();
+        save();
     }
 }

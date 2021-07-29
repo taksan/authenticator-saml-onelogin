@@ -19,6 +19,7 @@
  */
 package com.xwiki.authentication.saml;
 
+import com.xpn.xwiki.XWiki;
 import com.xpn.xwiki.XWikiContext;
 import com.xpn.xwiki.XWikiException;
 import org.slf4j.Logger;
@@ -33,10 +34,10 @@ public class XWikiGroupManager {
         this.groupResolver = groupResolver;
     }
 
-    protected synchronized void addUserToGroup(String xwikiUserName, String groupName, XWikiContext context){
+    protected synchronized void addUserToGroup(String xwikiUserName, String groupName, XWikiContext context) throws XWikiException {
         new XWikiGroupManagerWithContext(context).addUserToGroup(xwikiUserName, groupName);
     }
-    protected synchronized void removeUserFromGroup(String xwikiUserName, String groupName, XWikiContext context){
+    protected synchronized void removeUserFromGroup(String xwikiUserName, String groupName, XWikiContext context) throws XWikiException {
         new XWikiGroupManagerWithContext(context).removeUserFromGroup(xwikiUserName, groupName, context);
     }
 
@@ -51,7 +52,7 @@ public class XWikiGroupManager {
             return new Group(groupName, context, groupResolver);
         }
 
-        protected synchronized void addUserToGroup(String xwikiUserName, String groupName){
+        protected synchronized void addUserToGroup(String xwikiUserName, String groupName) throws XWikiException {
             try {
                 if (groupName.trim().isEmpty()) {
                     LOG.warn("Tried to add user [{}] to group with empty name. Ignoring", xwikiUserName);
@@ -73,13 +74,13 @@ public class XWikiGroupManager {
                 group.save();
 
                 LOG.debug("Finished adding user [{}] to xwiki group [{}]", xwikiUserName, groupName);
-            } catch (Exception e) {
+            } catch (XWikiException e) {
                 LOG.error("Failed to add user [{}] to group [{}]", xwikiUserName, groupName, e);
-                throw new IllegalStateException(e);
+                throw e;
             }
         }
 
-        protected synchronized void removeUserFromGroup(String xwikiUserName, String groupName, XWikiContext context){
+        protected synchronized void removeUserFromGroup(String xwikiUserName, String groupName, XWikiContext context) throws XWikiException {
             try {
                 if (groupName.trim().isEmpty()) {
                     LOG.warn("Tried to remove user [{}] from empty group. Ignoring", xwikiUserName);
@@ -91,8 +92,9 @@ public class XWikiGroupManager {
 
                 group.save();
 
-            } catch (Exception e) {
+            } catch (XWikiException e) {
                 LOG.error("Failed to remove a user from a group [{}] group: [{}]", xwikiUserName, groupName, e);
+                throw e;
             }
         }
     }

@@ -44,7 +44,6 @@ public class SamlAuthenticationResponseHandler {
             new EntityReference(XWiki.SYSTEM_SPACE, EntityType.SPACE));
     public static final String PROPERTY_TO_STORE_SAML_MANAGED_GROUPS = "SamlManagedGroups";
     public static final EntityReference USER_XCLASS = PROFILE_PARENT;
-    public static final String SAML_ID_XPROPERTY_NAME = "nameid";
 
     private final Saml2Settings samlSettings;
     private final XwikiAuthConfig authConfig;

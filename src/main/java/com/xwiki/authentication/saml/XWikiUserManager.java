@@ -32,12 +32,12 @@ import org.xwiki.model.reference.DocumentReference;
 import org.xwiki.model.reference.DocumentReferenceResolver;
 import org.xwiki.model.reference.EntityReferenceSerializer;
 import static com.xpn.xwiki.XWikiException.*;
-import static com.xwiki.authentication.saml.SamlAuthenticationResponseHandler.SAML_ID_XPROPERTY_NAME;
 import static com.xwiki.authentication.saml.SamlAuthenticationResponseHandler.SAML_XCLASS;
 import static com.xwiki.authentication.saml.SamlAuthenticator.PROFILE_PARENT;
 import static java.util.Arrays.asList;
 
 public class XWikiUserManager {
+    public static final String SAML_ID_XPROPERTY_NAME = "nameid";
     private static final Logger LOG = LoggerFactory.getLogger(XWikiUserManager.class);
     private final XwikiAuthConfig authConfig;
     private final EntityReferenceSerializer<String> compactStringEntityReferenceSerializer;

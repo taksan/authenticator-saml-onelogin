@@ -79,8 +79,7 @@ public class XWikiSAML20Authenticator extends XWikiAuthServiceImpl
     }
 
     @Override
-    public XWikiUser checkAuth(XWikiContext context) throws XWikiException
-    {
+    public XWikiUser checkAuth(XWikiContext context) throws XWikiException{
         return authenticator.checkAuth(context, () -> super.checkAuth(context));
     }
 

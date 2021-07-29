@@ -45,18 +45,18 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 
 public class XWikiMock extends XWiki {
-    public final Map<String, List<BaseObject>> createdObjectsByEntity = new LinkedHashMap<>();
+
     public final Set<XWikiDocument> savedDocuments = new LinkedHashSet<>();
-    private final BaseClass newClass;
+    private final BaseClass groupClass;
     private final Map<DocumentReference, XWikiDocument> docByReference = new LinkedHashMap<>();
 
     public final BaseObject baseObjectMock = mock(BaseObject.class);
     private final Map<String, String> savedUserAttributes = new LinkedHashMap<>();
 
     public XWikiMock(XWikiContext context) {
-        newClass = new BaseClass() {
+        groupClass = new BaseClass() {
             public DocumentReference getDocumentReference() {
-                return new DocumentReference(context.getWikiId(), "XWiki:", "XWikiGroups.StarshipTroopers");
+                return new DocumentReference(context.getWikiId(), "XWiki:", "XWikiGroups");
             }
 
             @SuppressWarnings("rawtypes")
@@ -109,12 +109,14 @@ public class XWikiMock extends XWiki {
 
     private XWikiDocument createDocumentForReference(DocumentReference reference) {
         return new XWikiDocument(new DocumentReference(reference, (Locale) null), reference.getLocale()) {
+            public final Map<String, List<BaseObject>> createdObjectsByEntity = new LinkedHashMap<>();
+
             @Override
             public BaseObject newXObject(EntityReference classReference, XWikiContext context) {
                 createdObjectsByEntity.putIfAbsent(classReference.toString(), new ArrayList<>());
                 final BaseObject obj = new BaseObject() {
                     public DocumentReference getXClassReference() {
-                        return (DocumentReference) classReference;
+                        return new DocumentReference(new EntityReference(classReference));
                     }
                 };
                 createdObjectsByEntity.get(classReference.toString()).add(obj);
@@ -156,6 +158,6 @@ public class XWikiMock extends XWiki {
     }
 
     public BaseClass getGroupClass(XWikiContext context) {
-        return newClass;
+        return groupClass;
     }
 }
