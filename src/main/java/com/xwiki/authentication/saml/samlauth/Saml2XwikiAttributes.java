@@ -1,9 +1,9 @@
-package com.xwiki.authentication.saml;
+package com.xwiki.authentication.saml.samlauth;
 
 import java.util.Map;
 import java.util.Set;
 
-class Saml2XwikiAttributes {
+public class Saml2XwikiAttributes {
     public final String nameID;
     public final Map<String, String> xwikiAttributes;
     public final Set<String> groupsFromSaml;

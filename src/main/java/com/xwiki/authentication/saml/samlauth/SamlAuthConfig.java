@@ -17,11 +17,11 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-package com.xwiki.authentication.saml;
+package com.xwiki.authentication.saml.samlauth;
 
 import org.xwiki.configuration.ConfigurationSource;
 
-public class XwikiAuthConfig {
+public class SamlAuthConfig {
     private static final String DEFAULT_AUTH_FIELD = "saml_user";
     private static final String DEFAULT_FIELDS_MAPPING = "email=email,first_name=firstName,last_name=lastName";
     private static final String DEFAULT_XWIKI_USERNAME_RULE = "first_name,last_name";
@@ -44,7 +44,7 @@ public class XwikiAuthConfig {
     public final boolean shouldCapitalizeUserNames;
     public final boolean allowLoginFallback;
 
-    public XwikiAuthConfig(
+    public SamlAuthConfig(
             String spEntityId,
             String assertionConsumerServiceUrl,
             String nameIdFormat,
@@ -72,8 +72,8 @@ public class XwikiAuthConfig {
         this.allowLoginFallback = allowLoginFallback;
     }
 
-    public static XwikiAuthConfig from(ConfigurationSource cfg) {
-        return new XwikiAuthConfig(
+    public static SamlAuthConfig from(ConfigurationSource cfg) {
+        return new SamlAuthConfig(
             property(cfg, "sp.entityid"),
             property(cfg, "sp.assertion_consumer_service.url"),
             property(cfg, "sp.nameidformat", DEFAULT_NAMEID_FORMAT),

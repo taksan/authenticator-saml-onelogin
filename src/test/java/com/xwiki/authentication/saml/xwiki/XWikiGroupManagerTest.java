@@ -17,7 +17,7 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-package com.xwiki.authentication.saml;
+package com.xwiki.authentication.saml.xwiki;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
@@ -29,6 +29,7 @@ import com.xpn.xwiki.objects.BaseObject;
 import com.xpn.xwiki.objects.classes.BaseClass;
 import com.xpn.xwiki.web.XWikiRequest;
 import com.xpn.xwiki.web.XWikiResponse;
+import com.xwiki.authentication.saml.testsupport.XWikiMock;
 import javax.servlet.http.HttpSession;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -137,7 +138,7 @@ public class XWikiGroupManagerTest {
         .when()
             .user("ArthurDent").isAddedToGroup("StarshipTroopers")
         .then()
-            .throwsGroupMembershipFailedException(new XWikiException("Failed to load document", new Throwable()));
+            .thrownException(new XWikiException("Failed to load document", new Throwable()));
     }
 
     @Test
@@ -147,7 +148,7 @@ public class XWikiGroupManagerTest {
         .when()
             .user("ArthurDent").isRemovedFromGroup("StarshipTroopers")
         .then()
-            .throwsGroupMembershipFailedException(new XWikiException("Failed to load document", new Throwable()));
+            .thrownException(new XWikiException("Failed to load document", new Throwable()));
     }
 
 
@@ -267,7 +268,7 @@ public class XWikiGroupManagerTest {
                 return this;
             }
 
-            public void throwsGroupMembershipFailedException(XWikiException expectedException) {
+            public void thrownException(XWikiException expectedException) {
                 assertEquals(expectedException.toString(), exception.toString());
             }
 

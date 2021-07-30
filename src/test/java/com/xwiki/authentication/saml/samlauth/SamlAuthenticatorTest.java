@@ -17,7 +17,7 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-package com.xwiki.authentication.saml;
+package com.xwiki.authentication.saml.samlauth;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
@@ -33,6 +33,11 @@ import com.xpn.xwiki.user.api.XWikiUser;
 import com.xpn.xwiki.web.Utils;
 import com.xpn.xwiki.web.XWikiRequest;
 import com.xpn.xwiki.web.XWikiResponse;
+import com.xwiki.authentication.saml.testsupport.ConfigurationSourceWithProperties;
+import com.xwiki.authentication.saml.testsupport.XWikiMock;
+import com.xwiki.authentication.saml.function.ConsumerWithThrowable;
+import com.xwiki.authentication.saml.onelogin.OneLoginAuth;
+import com.xwiki.authentication.saml.xwiki.XWikiGroupManager;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
@@ -317,13 +322,11 @@ public class SamlAuthenticatorTest {
             .throwsUserCreationFailedException("XWiki failed to create user [arthur.dent@dontpanic.com]. Error code [-3]");
     }
 
-
-
-    private DSL given() throws XWikiException, ComponentLookupException {
-        return new DSL();
+    private GivenDSL given() throws XWikiException, ComponentLookupException {
+        return new GivenDSL();
     }
 
-    private static class DSL {
+    private static class GivenDSL {
         final Properties props = new Properties();
         final ComponentManager globalCm = mock(ComponentManager.class);
         final ComponentManager contextCm = mock(ComponentManager.class);
@@ -331,15 +334,72 @@ public class SamlAuthenticatorTest {
         final SamlAuthenticator subject;
         final XWikiRequest request;
         final XWikiGroupManager groupManager;
-        XWikiMock xwiki;
+        final XWikiMock xwiki;
         XWikiUser loggedWikiUser = null;
-        ConfigurationSourceWithProperties cfg = new ConfigurationSourceWithProperties();
-        Auth samlAuth = mock(Auth.class);
-        XWikiContext context = new XWikiContext();
-        Logger root = (Logger) LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME);
+        final ConfigurationSourceWithProperties cfg = new ConfigurationSourceWithProperties();
+        final Auth samlAuth = mock(Auth.class);
+        final XWikiContext context = new XWikiContext();
 
-        DSL() throws XWikiException, ComponentLookupException {
+        GivenDSL() throws XWikiException, ComponentLookupException {
+            final Logger root = (Logger) LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME);
             root.setLevel(Level.OFF);
+
+            xwiki = new XWikiMock(context);
+            context.setWiki(xwiki);
+
+            request = setupContextRequest();
+            contextInitialization();
+
+            xwikiStore = setupXwikiStore();
+
+            makeGlobalComponentManagerReturnMockContextManager();
+            setupLocalEntityReferenceSerializer();
+
+            final SamlAuthConfig authConfig = setupAuthenticationConfiguration();
+            final DocumentReferenceResolver<String> mixedResolver = setupCurrentMixedDocumentReferenceResolver();
+            final EntityReferenceSerializer<String> referenceSerializer =
+                    (reference, parameters) -> reference.toString();
+            final OneLoginAuth oneLoginAuth = (settings, request, response) -> samlAuth;
+
+            groupManager = mock(XWikiGroupManager.class);
+
+            subject = new SamlAuthenticator(authConfig,
+                    mixedResolver,
+                    referenceSerializer,
+                    oneLoginAuth,
+                    groupManager);
+        }
+
+        private void makeGlobalComponentManagerReturnMockContextManager() throws ComponentLookupException {
+            Utils.setComponentManager(globalCm);
+            when(globalCm.getInstance(ComponentManager.class, "context")).thenReturn(contextCm);
+        }
+
+        private void setupLocalEntityReferenceSerializer() throws ComponentLookupException {
+            @SuppressWarnings("rawtypes")
+            final EntityReferenceSerializer local = (reference, parameters) -> reference + "";
+            when(contextCm.getInstance(EntityReferenceSerializer.TYPE_STRING, "local")).thenReturn(local);
+        }
+
+        private DocumentReferenceResolver<String> setupCurrentMixedDocumentReferenceResolver() throws ComponentLookupException {
+            final DocumentReferenceResolver<String> currentMixedDocumentReferenceResolver =
+                    (docRef, parameters) -> new DocumentReference( "XWiki", "Users", docRef);
+            when(contextCm.getInstance(DocumentReferenceResolver.TYPE_STRING, "currentmixed"))
+                    .thenReturn(currentMixedDocumentReferenceResolver);
+            return currentMixedDocumentReferenceResolver;
+        }
+
+        private XWikiRequest setupContextRequest() {
+            final XWikiRequest request;
+            request = mock(XWikiRequest.class);
+            HttpSession httpSession = mock(HttpSession.class);
+            when(request.getSession(true)).thenReturn(httpSession);
+            when(request.getSession()).thenReturn(httpSession);
+            context.setRequest(request);
+            return request;
+        }
+
+        private SamlAuthConfig setupAuthenticationConfiguration() {
             props.putAll(
                     Maps.newHashMap(
                             "xwiki.authentication.saml2.sp.entityid", "",
@@ -350,87 +410,60 @@ public class SamlAuthenticatorTest {
                             "xwiki.authentication.saml2.default_group_for_new_users", "XWiki.SamlUsers"
                     ));
             cfg.setFromProperties(props);
+            return SamlAuthConfig.from(cfg);
+        }
 
-            XwikiAuthConfig authConfig = XwikiAuthConfig.from(cfg);
-            DocumentReferenceResolver<String> currentMixedDocumentReferenceResolver =
-                    (docRef, parameters) -> new DocumentReference( "XWiki", "Users", docRef);
+        private XWikiStoreInterface setupXwikiStore() throws XWikiException {
+            XWikiStoreInterface xwikiStore = mock(XWikiStoreInterface.class);
+            when(xwikiStore.loadXWikiDoc(any(), any())).thenAnswer(
+                    (Answer<XWikiDocument>) invocation -> (XWikiDocument) invocation.getArguments()[0]);
 
-            EntityReferenceSerializer<String> compactStringEntityReferenceSerializer =
-                    (reference, parameters) -> null;
+            xwiki.setStore(xwikiStore);
+            return xwikiStore;
+        }
 
-            OneLoginAuth oneLoginAuth = (settings, request, response) -> samlAuth;
+        private void contextInitialization() {
             context.setWikiId("XWIKI");
             context.setMainXWiki("MAIN-XWIKI");
             context.setAction("");
             context.setResponse(mock(XWikiResponse.class));
-            request = mock(XWikiRequest.class);
-            HttpSession httpSession = mock(HttpSession.class);
-            when(request.getSession(true)).thenReturn(httpSession);
-            when(request.getSession()).thenReturn(httpSession);
-
-            context.setRequest(request);
-
-            xwiki = new XWikiMock(context);
-            groupManager = mock(XWikiGroupManager.class);
-            Utils.setComponentManager(globalCm);
-
-            when(globalCm.getInstance(ComponentManager.class, "context")).thenReturn(contextCm);
-
-            @SuppressWarnings("rawtypes") final EntityReferenceSerializer local = (reference, parameters) -> reference + "";
-            when(contextCm.getInstance(EntityReferenceSerializer.TYPE_STRING, "local")).thenReturn(local);
-
-            when(contextCm.getInstance(DocumentReferenceResolver.TYPE_STRING, "currentmixed"))
-                    .thenReturn(currentMixedDocumentReferenceResolver);
-            subject = new SamlAuthenticator(authConfig,
-                    currentMixedDocumentReferenceResolver,
-                    compactStringEntityReferenceSerializer,
-                    oneLoginAuth,
-                    groupManager);
-
-            context.setWiki(xwiki);
-            xwikiStore = mock(XWikiStoreInterface.class);
-            xwiki.setStore(xwikiStore);
-
-            when(xwikiStore.loadXWikiDoc(any(), any())).thenAnswer(
-                    (Answer<XWikiDocument>) invocation -> (XWikiDocument) invocation.getArguments()[0]);
-
         }
 
-        public DSL defaultGroupForNewUsers(String userGroup) {
+        public GivenDSL defaultGroupForNewUsers(String userGroup) {
             props.setProperty("xwiki.authentication.saml2.default_group_for_new_users",userGroup);
 
             return this;
         }
 
-        public DSL xwiki(ConsumerWithThrowable<XWikiUsersDSL,Exception> configuration) throws Exception {
+        public GivenDSL xwiki(ConsumerWithThrowable<XWikiUsersDSL,Exception> configuration) throws Exception {
             configuration.accept(new XWikiUsersDSL());
             return this;
         }
 
-        public DSL userIsAnonymous() {
+        public GivenDSL userIsAnonymous() {
             when(samlAuth.isAuthenticated()).thenReturn(false);
             when(samlAuth.getNameId()).thenReturn(null);
             return this;
         }
 
-        public DSL userIsLoggedInByCookie(String loggedUserName){
+        public GivenDSL userIsLoggedInByCookie(String loggedUserName){
             loggedWikiUser = mock(XWikiUser.class);
             when(loggedWikiUser.getFullName()).thenReturn(loggedUserName);
             when(request.getCookie("username")).thenReturn(mock(Cookie.class));
             return this;
         }
 
-        public DSL userIsLoggedInTheSession(String loggedUserName){
+        public GivenDSL userIsLoggedInTheSession(String loggedUserName){
              when(context.getRequest().getSession(true).getAttribute(any())).thenReturn(loggedUserName);
             return this;
         }
 
-        public DSL currentRequestUrlIs(String currentRequestUrl){
+        public GivenDSL currentRequestUrlIs(String currentRequestUrl){
             when(request.getRequestURL()).thenReturn(new StringBuffer(currentRequestUrl));
             return this;
         }
 
-        public DSL identityProviderAuthenticatedUser(Consumer<IdpUserData> userConfiguration) {
+        public GivenDSL identityProviderAuthenticatedUser(Consumer<IdpUserData> userConfiguration) {
             when(request.getParameter("SAMLResponse")).thenReturn("Some SAML Response");
             when(samlAuth.isAuthenticated()).thenReturn(true);
             IdpUserData idpUserData = new IdpUserData();
@@ -446,10 +479,10 @@ public class SamlAuthenticatorTest {
             when(samlAuth.getAttributesName()).thenReturn(new ArrayList<>(samlAttributes.keySet()));
             when(samlAuth.getAttributes()).thenReturn(samlAttributes);
 
-            return DSL.this;
+            return GivenDSL.this;
         }
 
-        public DSL shouldCapitalize(boolean shouldCapitalize) {
+        public GivenDSL shouldCapitalize(boolean shouldCapitalize) {
             props.setProperty("xwiki.authentication.saml2.xwiki_user_rule_capitalize", shouldCapitalize+"");
             return this;
         }
@@ -468,12 +501,12 @@ public class SamlAuthenticatorTest {
             }
         }
 
-        public DSL accessWithGivenAction(String actionToBeHandled) {
+        public GivenDSL accessWithGivenAction(String actionToBeHandled) {
             context.setAction(actionToBeHandled);
             return this;
         }
 
-        public DSL userCreationFails() {
+        public GivenDSL userCreationFails() {
             xwiki.makeCreateUserReturnError();
             return this;
         }
@@ -506,7 +539,7 @@ public class SamlAuthenticatorTest {
         public ThenDSL whenAuthenticationIsVerified() {
             ConfigurationSourceWithProperties cfg = new ConfigurationSourceWithProperties();
             cfg.setFromProperties(props);
-            XwikiAuthConfig authConfig = XwikiAuthConfig.from(cfg);
+            SamlAuthConfig authConfig = SamlAuthConfig.from(cfg);
             DocumentReferenceResolver<String> currentMixedDocumentReferenceResolver =
                     (docRef, parameters) -> new DocumentReference( "XWiki", "Users", docRef);
             EntityReferenceSerializer<String> compactStringEntityReferenceSerializer =

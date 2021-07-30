@@ -25,7 +25,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xwiki.model.reference.DocumentReference;
 import org.xwiki.model.reference.DocumentReferenceResolver;
-import static com.xwiki.authentication.saml.SamlAuthenticator.PROFILE_PARENT;
+import static com.xwiki.authentication.saml.samlauth.SamlAuthenticator.PROFILE_PARENT;
 
 public class AuthenticatedUserHandler {
     private static final Logger LOG = LoggerFactory.getLogger(AuthenticatedUserHandler.class);

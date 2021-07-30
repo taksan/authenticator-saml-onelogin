@@ -21,32 +21,30 @@ package com.xwiki.authentication.saml;
 
 import com.onelogin.saml2.Auth;
 import com.onelogin.saml2.settings.Saml2Settings;
-import com.xpn.xwiki.XWiki;
 import com.xpn.xwiki.XWikiContext;
 import com.xpn.xwiki.XWikiException;
 import com.xpn.xwiki.user.api.XWikiUser;
+import com.xwiki.authentication.saml.samlauth.Saml2XwikiAttributes;
+import com.xwiki.authentication.saml.samlauth.SamlAuthConfig;
+import com.xwiki.authentication.saml.samlauth.SamlXwikiAttributesExtractor;
+import com.xwiki.authentication.saml.xwiki.XWikiGroupManager;
+import com.xwiki.authentication.saml.xwiki.XWikiUserGroupSynchronizer;
+import com.xwiki.authentication.saml.xwiki.XWikiUserManager;
+import com.xwiki.authentication.saml.onelogin.OneLoginAuth;
 import java.io.IOException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xwiki.model.EntityType;
 import org.xwiki.model.reference.DocumentReference;
 import org.xwiki.model.reference.DocumentReferenceResolver;
-import org.xwiki.model.reference.EntityReference;
 import org.xwiki.model.reference.EntityReferenceSerializer;
 import static com.xpn.xwiki.XWikiException.ERROR_XWIKI_UNKNOWN;
 import static com.xpn.xwiki.XWikiException.MODULE_XWIKI_PLUGINS;
-import static com.xwiki.authentication.saml.SamlAuthenticator.ORIGINAL_URL_SESSION_KEY;
-import static com.xwiki.authentication.saml.SamlAuthenticator.PROFILE_PARENT;
 
-public class SamlAuthenticationResponseHandler {
-    private static final Logger LOG = LoggerFactory.getLogger(SamlAuthenticationResponseHandler.class);
-    public static final EntityReference SAML_XCLASS = new EntityReference("SAMLAuthClass", EntityType.DOCUMENT,
-            new EntityReference(XWiki.SYSTEM_SPACE, EntityType.SPACE));
-    public static final String PROPERTY_TO_STORE_SAML_MANAGED_GROUPS = "SamlManagedGroups";
-    public static final EntityReference USER_XCLASS = PROFILE_PARENT;
+public class SamlAuthenticationHandler {
+    private static final Logger LOG = LoggerFactory.getLogger(SamlAuthenticationHandler.class);
 
     private final Saml2Settings samlSettings;
-    private final XwikiAuthConfig authConfig;
+    private final SamlAuthConfig authConfig;
     private final XWikiGroupManager groupManager;
     private final EntityReferenceSerializer<String> compactStringEntityReferenceSerializer;
     private final OneLoginAuth loginAuthFactory;
@@ -55,13 +53,13 @@ public class SamlAuthenticationResponseHandler {
     private final SamlXwikiAttributesExtractor attributesExtractor;
 
 
-    public SamlAuthenticationResponseHandler(XWikiContext context,
-                                             OneLoginAuth loginAuthFactory,
-                                             Saml2Settings samlSettings,
-                                             XwikiAuthConfig authConfig,
-                                             XWikiGroupManager groupManager,
-                                             EntityReferenceSerializer<String> compactStringEntityReferenceSerializer,
-                                             DocumentReferenceResolver<String> currentMixedDocumentReferenceResolver) {
+    public SamlAuthenticationHandler(XWikiContext context,
+                                     OneLoginAuth loginAuthFactory,
+                                     Saml2Settings samlSettings,
+                                     SamlAuthConfig authConfig,
+                                     XWikiGroupManager groupManager,
+                                     EntityReferenceSerializer<String> compactStringEntityReferenceSerializer,
+                                     DocumentReferenceResolver<String> currentMixedDocumentReferenceResolver) {
         this.context = context;
         this.loginAuthFactory = loginAuthFactory;
         this.samlSettings = samlSettings;
@@ -114,7 +112,7 @@ public class SamlAuthenticationResponseHandler {
     }
 
     private void redirectToOriginalRequestedUrl() throws IOException {
-        final String originalSourceUrl = (String) context.getRequest().getSession().getAttribute(ORIGINAL_URL_SESSION_KEY);
+        final String originalSourceUrl = (String) context.getRequest().getSession().getAttribute(XWikiSAML20Authenticator.ORIGINAL_URL_SESSION_KEY);
         LOG.debug("Will redirect to [{}] after successful authentication", originalSourceUrl);
         context.getResponse().sendRedirect(originalSourceUrl);
         context.setFinished(true);

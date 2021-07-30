@@ -9,6 +9,8 @@ import com.xpn.xwiki.XWikiException;
 import com.xpn.xwiki.user.api.XWikiUser;
 import com.xpn.xwiki.web.XWikiRequest;
 import com.xpn.xwiki.web.XWikiResponse;
+import com.xwiki.authentication.saml.function.SupplierWithException;
+import com.xwiki.authentication.saml.onelogin.OneLoginAuth;
 import java.io.IOException;
 import java.util.List;
 import org.slf4j.Logger;
@@ -17,14 +19,14 @@ import static com.xpn.xwiki.XWikiException.ERROR_XWIKI_UNKNOWN;
 import static com.xpn.xwiki.XWikiException.MODULE_XWIKI;
 import static java.util.Arrays.asList;
 
-public class RegularAccessHandler {
+public class NonAuthenticatedAccessHandler {
 
-    private static final Logger LOG = LoggerFactory.getLogger(RegularAccessHandler.class);
+    private static final Logger LOG = LoggerFactory.getLogger(NonAuthenticatedAccessHandler.class);
     private XWikiContext context;
     private final OneLoginAuth loginAuthFactory;
     private final Saml2Settings samlSettings;
 
-    public RegularAccessHandler(XWikiContext context, OneLoginAuth loginAuthFactory, Saml2Settings samlSettings) {
+    public NonAuthenticatedAccessHandler(XWikiContext context, OneLoginAuth loginAuthFactory, Saml2Settings samlSettings) {
         this.context = context;
         this.loginAuthFactory = loginAuthFactory;
         this.samlSettings = samlSettings;

@@ -17,7 +17,7 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-package com.xwiki.authentication.saml;
+package com.xwiki.authentication.saml.xwiki;
 
 import com.xpn.xwiki.XWikiContext;
 import com.xpn.xwiki.XWikiException;
@@ -31,8 +31,7 @@ import org.xwiki.model.reference.DocumentReference;
 import org.xwiki.rendering.syntax.Syntax;
 import static com.xpn.xwiki.XWikiException.ERROR_XWIKI_USER_CREATE;
 import static com.xpn.xwiki.XWikiException.MODULE_XWIKI_PLUGINS;
-import static com.xwiki.authentication.saml.SamlAuthenticationResponseHandler.*;
-import static com.xwiki.authentication.saml.SamlAuthenticator.PROFILE_PARENT;
+import static com.xwiki.authentication.saml.samlauth.SamlAuthenticator.PROFILE_PARENT;
 
 public class User {
     private final String nameID;
@@ -46,7 +45,7 @@ public class User {
         this.userReference = userReferenceForName;
         this.context = context;
         this.userDoc = context.getWiki().getDocument(userReference, context);
-        this.userObj = userDoc.getXObject(USER_XCLASS);
+        this.userObj = userDoc.getXObject(XWikiUserManager.USER_XCLASS);
     }
 
     public boolean exists() {
@@ -100,7 +99,7 @@ public class User {
     }
 
     private void associateSamlUserWithXwikiUser() throws XWikiException {
-        final BaseObject samlIdObject = userDoc.newXObject(SAML_XCLASS, context);
+        final BaseObject samlIdObject = userDoc.newXObject(XWikiUserManager.SAML_XCLASS, context);
         @SuppressWarnings("rawtypes")
         final BaseProperty samlIdProp = new StringClass().fromString(nameID);
         samlIdProp.setOwnerDocument(samlIdObject.getOwnerDocument());

@@ -26,6 +26,10 @@ import com.xpn.xwiki.user.api.XWikiUser;
 import com.xpn.xwiki.user.impl.xwiki.XWikiAuthServiceImpl;
 import com.xpn.xwiki.web.Utils;
 import com.xpn.xwiki.web.XWikiRequest;
+import com.xwiki.authentication.saml.onelogin.OneLoginAuthImpl;
+import com.xwiki.authentication.saml.samlauth.SamlAuthConfig;
+import com.xwiki.authentication.saml.samlauth.SamlAuthenticator;
+import com.xwiki.authentication.saml.xwiki.XWikiGroupManager;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,8 +40,8 @@ import org.xwiki.model.reference.DocumentReference;
 import org.xwiki.model.reference.DocumentReferenceResolver;
 import org.xwiki.model.reference.EntityReferenceSerializer;
 
-public class XWikiSAML20Authenticator extends XWikiAuthServiceImpl
-{
+public class XWikiSAML20Authenticator extends XWikiAuthServiceImpl{
+    public static final String ORIGINAL_URL_SESSION_KEY = "saml20_url";
     private static final Logger LOG = LoggerFactory.getLogger(XWikiSAML20Authenticator.class);
 
     @SuppressWarnings("deprecation")
@@ -57,7 +61,7 @@ public class XWikiSAML20Authenticator extends XWikiAuthServiceImpl
     private final SamlAuthenticator authenticator;
 
     public XWikiSAML20Authenticator() {
-        XwikiAuthConfig authConfig = XwikiAuthConfig.from(configurationSource);
+        SamlAuthConfig authConfig = SamlAuthConfig.from(configurationSource);
         authenticator = new SamlAuthenticator(
                 authConfig,
                 currentMixedDocumentReferenceResolver,
@@ -74,7 +78,7 @@ public class XWikiSAML20Authenticator extends XWikiAuthServiceImpl
         // Remember the requested URL, so we can return to it afterwards
         final String sourceUrl = getSourceUrl(context, request);
 
-        request.getSession().setAttribute(SamlAuthenticator.ORIGINAL_URL_SESSION_KEY, sourceUrl);
+        request.getSession().setAttribute(ORIGINAL_URL_SESSION_KEY, sourceUrl);
         LOG.debug("Invoked showLogin");
     }
 

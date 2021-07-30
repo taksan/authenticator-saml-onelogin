@@ -17,9 +17,8 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-package com.xwiki.authentication.saml;
+package com.xwiki.authentication.saml.xwiki;
 
-import com.xpn.xwiki.XWiki;
 import com.xpn.xwiki.XWikiContext;
 import com.xpn.xwiki.XWikiException;
 import org.slf4j.Logger;
@@ -34,10 +33,10 @@ public class XWikiGroupManager {
         this.groupResolver = groupResolver;
     }
 
-    protected synchronized void addUserToGroup(String xwikiUserName, String groupName, XWikiContext context) throws XWikiException {
+    public synchronized void addUserToGroup(String xwikiUserName, String groupName, XWikiContext context) throws XWikiException {
         new XWikiGroupManagerWithContext(context).addUserToGroup(xwikiUserName, groupName);
     }
-    protected synchronized void removeUserFromGroup(String xwikiUserName, String groupName, XWikiContext context) throws XWikiException {
+    public synchronized void removeUserFromGroup(String xwikiUserName, String groupName, XWikiContext context) throws XWikiException {
         new XWikiGroupManagerWithContext(context).removeUserFromGroup(xwikiUserName, groupName, context);
     }
 

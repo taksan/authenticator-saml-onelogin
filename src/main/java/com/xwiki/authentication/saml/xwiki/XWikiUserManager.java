@@ -17,10 +17,13 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-package com.xwiki.authentication.saml;
+package com.xwiki.authentication.saml.xwiki;
 
+import com.xpn.xwiki.XWiki;
 import com.xpn.xwiki.XWikiContext;
 import com.xpn.xwiki.XWikiException;
+import com.xwiki.authentication.saml.samlauth.SamlAuthConfig;
+import com.xwiki.authentication.saml.samlauth.Saml2XwikiAttributes;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -28,22 +31,26 @@ import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.xwiki.model.EntityType;
 import org.xwiki.model.reference.DocumentReference;
 import org.xwiki.model.reference.DocumentReferenceResolver;
+import org.xwiki.model.reference.EntityReference;
 import org.xwiki.model.reference.EntityReferenceSerializer;
 import static com.xpn.xwiki.XWikiException.*;
-import static com.xwiki.authentication.saml.SamlAuthenticationResponseHandler.SAML_XCLASS;
-import static com.xwiki.authentication.saml.SamlAuthenticator.PROFILE_PARENT;
+import static com.xwiki.authentication.saml.samlauth.SamlAuthenticator.PROFILE_PARENT;
 import static java.util.Arrays.asList;
 
 public class XWikiUserManager {
+    public static final EntityReference SAML_XCLASS = new EntityReference("SAMLAuthClass", EntityType.DOCUMENT,
+            new EntityReference(XWiki.SYSTEM_SPACE, EntityType.SPACE));
+    public static final EntityReference USER_XCLASS = PROFILE_PARENT;
     public static final String SAML_ID_XPROPERTY_NAME = "nameid";
     private static final Logger LOG = LoggerFactory.getLogger(XWikiUserManager.class);
-    private final XwikiAuthConfig authConfig;
+    private final SamlAuthConfig authConfig;
     private final EntityReferenceSerializer<String> compactStringEntityReferenceSerializer;
     private final DocumentReferenceResolver<String> currentMixedDocumentReferenceResolver;
 
-    public XWikiUserManager(XwikiAuthConfig authConfig,
+    public XWikiUserManager(SamlAuthConfig authConfig,
                             EntityReferenceSerializer<String> compactStringEntityReferenceSerializer,
                             DocumentReferenceResolver<String> currentMixedDocumentReferenceResolver) {
         this.authConfig = authConfig;

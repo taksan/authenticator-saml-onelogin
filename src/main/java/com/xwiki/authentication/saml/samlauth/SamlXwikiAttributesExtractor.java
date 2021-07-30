@@ -17,9 +17,10 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-package com.xwiki.authentication.saml;
+package com.xwiki.authentication.saml.samlauth;
 
 import com.onelogin.saml2.Auth;
+import com.xwiki.authentication.saml.SamlAuthenticationHandler;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -29,11 +30,11 @@ import static org.apache.commons.compress.utils.Sets.newHashSet;
 import static org.apache.commons.lang3.ObjectUtils.defaultIfNull;
 
 public class SamlXwikiAttributesExtractor {
-    private static final Logger LOG = LoggerFactory.getLogger(SamlAuthenticationResponseHandler.class);
+    private static final Logger LOG = LoggerFactory.getLogger(SamlAuthenticationHandler.class);
 
-    private final XwikiAuthConfig authConfig;
+    private final SamlAuthConfig authConfig;
 
-    public SamlXwikiAttributesExtractor(XwikiAuthConfig authConfig) {
+    public SamlXwikiAttributesExtractor(SamlAuthConfig authConfig) {
         this.authConfig = authConfig;
     }
 

@@ -17,7 +17,7 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-package com.xwiki.authentication.saml;
+package com.xwiki.authentication.saml.xwiki;
 
 import com.xpn.xwiki.XWikiContext;
 import com.xpn.xwiki.XWikiException;
@@ -25,15 +25,14 @@ import com.xpn.xwiki.doc.XWikiDocument;
 import com.xpn.xwiki.objects.BaseObject;
 import com.xpn.xwiki.objects.StringProperty;
 import com.xpn.xwiki.objects.classes.StringClass;
+import com.xwiki.authentication.saml.samlauth.Saml2XwikiAttributes;
 import java.util.Optional;
 import java.util.Set;
 import org.xwiki.model.reference.DocumentReference;
-import static com.xwiki.authentication.saml.SamlAuthenticationResponseHandler.PROPERTY_TO_STORE_SAML_MANAGED_GROUPS;
-import static com.xwiki.authentication.saml.SamlAuthenticationResponseHandler.USER_XCLASS;
 import static org.apache.commons.compress.utils.Sets.newHashSet;
 
 public class XWikiUserGroupSynchronizer {
-
+    private static final String PROPERTY_TO_STORE_SAML_MANAGED_GROUPS = "SamlManagedGroups";
     private final XWikiGroupManager groupManager;
     private final XWikiContext context;
 
@@ -44,7 +43,7 @@ public class XWikiUserGroupSynchronizer {
 
     public void syncUserGroups(DocumentReference userReference, Saml2XwikiAttributes attributes) throws XWikiException {
         final XWikiDocument userDoc = context.getWiki().getDocument(userReference, context);
-        final BaseObject userObj = userDoc.getXObject(USER_XCLASS);
+        final BaseObject userObj = userDoc.getXObject(XWikiUserManager.USER_XCLASS);
 
         removeUserFromGroupsMissingInSamlGroups(userReference, userObj, attributes);
 

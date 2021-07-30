@@ -17,7 +17,7 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-package com.xwiki.authentication.saml;
+package com.xwiki.authentication.saml.samlauth;
 
 import com.onelogin.saml2.settings.Saml2Settings;
 import com.onelogin.saml2.settings.SettingsBuilder;
@@ -25,6 +25,12 @@ import com.xpn.xwiki.XWiki;
 import com.xpn.xwiki.XWikiContext;
 import com.xpn.xwiki.XWikiException;
 import com.xpn.xwiki.user.api.XWikiUser;
+import com.xwiki.authentication.saml.AuthenticatedUserHandler;
+import com.xwiki.authentication.saml.NonAuthenticatedAccessHandler;
+import com.xwiki.authentication.saml.SamlAuthenticationHandler;
+import com.xwiki.authentication.saml.xwiki.XWikiGroupManager;
+import com.xwiki.authentication.saml.function.SupplierWithException;
+import com.xwiki.authentication.saml.onelogin.OneLoginAuth;
 import java.util.Optional;
 import org.xwiki.model.EntityType;
 import org.xwiki.model.reference.DocumentReferenceResolver;
@@ -34,16 +40,15 @@ import org.xwiki.model.reference.EntityReferenceSerializer;
 public class SamlAuthenticator {
     public static final EntityReference PROFILE_PARENT = new EntityReference("XWikiUsers", EntityType.DOCUMENT,
             new EntityReference(XWiki.SYSTEM_SPACE, EntityType.SPACE));
-    public static final String ORIGINAL_URL_SESSION_KEY = "saml20_url";
     private final Saml2Settings samlSettings;
-    private final XwikiAuthConfig authConfig;
+    private final SamlAuthConfig authConfig;
     private final DocumentReferenceResolver<String> currentMixedDocumentReferenceResolver;
     private final EntityReferenceSerializer<String> compactStringEntityReferenceSerializer;
     private final OneLoginAuth loginAuthFactory;
 
     private final XWikiGroupManager groupManager;
 
-    public SamlAuthenticator(XwikiAuthConfig authConfig,
+    public SamlAuthenticator(SamlAuthConfig authConfig,
                              DocumentReferenceResolver<String> currentMixedDocumentReferenceResolver,
                              EntityReferenceSerializer<String> compactStringEntityReferenceSerializer,
                              OneLoginAuth loginAuthFactory,
@@ -75,8 +80,8 @@ public class SamlAuthenticator {
         if (samlUserName.isPresent())
             return new AuthenticatedUserHandler(context, currentMixedDocumentReferenceResolver).handle(samlUserName.get());
 
-        if (isSamlAuthenticationResponse(context))
-            return new SamlAuthenticationResponseHandler(
+        if (isSamlAuthentication(context))
+            return new SamlAuthenticationHandler(
                     context,
                     loginAuthFactory,
                     samlSettings,
@@ -86,10 +91,10 @@ public class SamlAuthenticator {
                     currentMixedDocumentReferenceResolver)
                     .handle();
 
-        return new RegularAccessHandler(context,loginAuthFactory,samlSettings).handle(defaultAuthHandler);
+        return new NonAuthenticatedAccessHandler(context,loginAuthFactory,samlSettings).handle(defaultAuthHandler);
     }
 
-    private boolean isSamlAuthenticationResponse(XWikiContext context) {
+    private boolean isSamlAuthentication(XWikiContext context) {
         return extractSamlResponse(context) != null;
     }
 
