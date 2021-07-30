@@ -3,7 +3,7 @@
 These instructions are applicable to configure Google Workspace as the IDP for XWiki
 using this plugin.  
 
-The following configurations are required in the xwiki.cfg file.
+The following configurations are required in the `xwiki.cfg` file.
 
 ## Required properties
 
@@ -17,7 +17,7 @@ xwiki.authentication.saml2.idp.x509cert=the certificate to validate\
 requests. Use backslash\
 for line breaks
 
-xwiki.authentication.saml2.sp.assertion_consumer_service.url=https://<you wiki domain>/bin/loginsubmit/XWiki/XWikiLogin
+xwiki.authentication.saml2.sp.assertion_consumer_service.url=https://<your wiki domain>/bin/loginsubmit/XWiki/XWikiLogin
 ```
 
 ## Google Workspace set up instructions
@@ -63,31 +63,31 @@ This can be used to specify the user groups.
 </md:EntityDescriptor>
 ```
 
-The value of Location field of `urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST` is xwiki.authentication.saml2.idp.single_sign_on_service.url.
+Look for the `<md:SingleSignOnService>` XML Tag with the `Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST"` attribute. The value of its `Location` attribute will be used on the `xwiki.authentication.saml2.idp.single_sign_on_service.url` property.
 
-`entityID` value in the first line should be set on `xwiki.authentication.saml2.idp.entityid`.
+Simiarly, look for the `<md:EntityDescriptor>` XML Tag at the beginning of the file. The value of its `entityID` attribute will be used on the `xwiki.authentication.saml2.idp.entityid` property.
 
-2. Next to the service provider page:
+3. Next, on the "Service provider details" page:
 
-* ACS URL: https://(your wiki domain)/bin/loginsubmit/XWiki/XWikiLogin
-* Entity ID: the same value present on xwiki.authentication.saml2.sp.entityid
-* Name ID Format: EMAIL
-* Name ID Field: Basic Information > Primary email
++ ACS URL: `https://<your wiki domain>/bin/loginsubmit/XWiki/XWikiLogin`
++ Entity ID: the same value present on the `xwiki.authentication.saml2.sp.entityid` property.
++ Name ID Format: EMAIL
++ Name ID Field: Basic Information > Primary email
 
 ![google_app_service_provider](images/google_app_service_provider.png)
 ![google_app_service_provider_continue](images/google_app_service_provider_continue.png)
 
-3. Attribute mapping:
-
-* Primary Email -> email
-* First Name -> firstName
-* Last Name -> lastName
-
-If you created the custom field XWikiGroups, set up the following attribute mapping:
-* XWikiGroups -> XWikiGroups 
+4. Attribute mapping:
+```
+ Primary Email -> email
+ First Name -> firstName
+ Last Name -> lastName
+```
+If you created the custom field XWikiGroups, set up the following attribute mapping, replacing the name with whichever name you used:
+`XWikiGroups -> XWikiGroups` 
 
 ![google_app_mapping](images/google_app_mapping.png)
 
-+ Overview
++ This is how your overview page should look like:
 
 ![google_app_overview](images/google_app_overview.png)

@@ -1,16 +1,17 @@
 #!/bin/bash
 
+set -e -o nounset
 
-curl -s http://localhost:8090/auth/realms/MyNewRealm/protocol/saml/descriptor > metadata.xml
+curl -sS http://localhost:8090/auth/realms/MyNewRealm/protocol/saml/descriptor > metadata.xml
 
-keycloakSpEntityID="xwiki"
-xwikiUrlLogin="http://localhost:8080/bin/loginsubmit/XWiki/XWikiLogin"
-keycloakIdpEntityID=$(cat metadata.xml | sed 's/.* entityID="\([^"]*\)".*/\1/')
-keycloakSingleSignOnService=$(cat metadata.xml | sed -E 's/.*SingleSignOnService.+Location="([^"]+)".*/\1/')
-keycloakCertificate=$(cat metadata.xml | sed -E 's/.*<ds:X509Certificate>([^<]*).*/\1/') 
+key_cloak_sp_entity_id="xwiki"
+xwiki_url_login="http://localhost:8080/bin/loginsubmit/XWiki/XWikiLogin"
+key_cloak_idp_entity_id=$(sed 's/.* entityID="\([^"]*\)".*/\1/' metadata.xml)
+key_cloak_single_sign_on_service=$(sed -E 's/.*SingleSignOnService.+Location="([^"]+)".*/\1/' metadata.xml)
+key_cloak_certificate=$(sed -E 's/.*<ds:X509Certificate>([^<]*).*/\1/' metadata.xml)
 
 
-docker-compose exec web bash -c """
+docker-compose exec xwiki bash -c """
 sed -i '/####CUSTOM_SETUP_START/,/####CUSTOM_SETUP_END/ d' /usr/local/xwiki/data/xwiki.properties
 echo '
 ####CUSTOM_SETUP_START
@@ -21,23 +22,20 @@ extension.repositories=local-xwiki:maven:http://xwiki-nexus:8081/repository/mave
 
 ####CUSTOM_SETUP_END
 ' >> /usr/local/xwiki/data/xwiki.properties
-"""
 
-
-docker-compose exec web bash -c """
 sed -i '/####CUSTOM_SETUP_START/,/####CUSTOM_SETUP_END/ d' /usr/local/xwiki/data/xwiki.cfg
 echo '
 ####CUSTOM_SETUP_START
 
 xwiki.authentication.authclass=com.xwiki.authentication.saml.XWikiSAML20Authenticator
-xwiki.authentication.saml2.idp.single_sign_on_service.url=$keycloakSingleSignOnService
-xwiki.authentication.saml2.idp.entityid=$keycloakIdpEntityID
-xwiki.authentication.saml2.sp.entityid=$keycloakSpEntityID
-xwiki.authentication.saml2.idp.x509cert=$keycloakCertificate
-xwiki.authentication.saml2.sp.assertion_consumer_service.url=$xwikiUrlLogin
+xwiki.authentication.saml2.idp.single_sign_on_service.url=$key_cloak_single_sign_on_service
+xwiki.authentication.saml2.idp.entityid=$key_cloak_idp_entity_id
+xwiki.authentication.saml2.sp.entityid=$key_cloak_sp_entity_id
+xwiki.authentication.saml2.idp.x509cert=$key_cloak_certificate
+xwiki.authentication.saml2.sp.assertion_consumer_service.url=$xwiki_url_login
 
 ####CUSTOM_SETUP_END
 ' >> /usr/local/xwiki/data/xwiki.cfg
 """
 
-docker-compose restart web
+docker-compose restart xwiki

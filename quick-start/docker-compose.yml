@@ -1,65 +1,44 @@
-version: '2'
-networks:
-  bridge:
-    driver: bridge
+version: '2.4'
 services:
-  web:
-    # Use an already built XWiki image from DockerHub.
-    image: "xwiki:13.3-postgres-tomcat" 
-    container_name: xwiki-postgres-tomcat-web
+  xwiki:
+    image: "xwiki:13.3-postgres-tomcat"
+    container_name: xwiki-postgres-tomcat
     depends_on:
       - db
     ports:
       - "8080:8080"
-      - "8443:8443"  
-    # The DB_USER/DB_PASSWORD/DB_HOST variables are used in the hibernate.cfg.xml file.
     environment:
-      - DB_USER=xwiki
-      - DB_PASSWORD=xwiki
-      - DB_DATABASE=xwiki
-      - DB_HOST=xwiki-postgres-db
-    # Provide a name instead of an auto-generated id for the xwiki permanent directory configured in the Dockerfile,
-    # to make it simpler to identify in 'docker volume ls'.
+      DB_USER: xwiki
+      DB_PASSWORD: xwiki
+      DB_DATABASE: xwiki
+      DB_HOST: xwiki-postgres-db
     volumes:
-      - xwiki-data:/usr/local/xwiki
-    networks:
-      - bridge
+      - ./volumes/xwiki-data:/usr/local/xwiki
   db:
     image: "postgres:12-alpine"
     container_name: xwiki-postgres-db
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - ./volumes/postgres-data:/var/lib/postgresql/data
     environment:
       - POSTGRES_ROOT_PASSWORD=xwiki
       - POSTGRES_PASSWORD=xwiki
       - POSTGRES_USER=xwiki
       - POSTGRES_DB=xwiki
       - POSTGRES_INITDB_ARGS="--encoding=UTF8"
-    networks:
-      - bridge
   nexus:
     image: sonatype/nexus3:3.32.0
     container_name: xwiki-nexus
     volumes:
-      - nexus-data:/nexus-data
+      - ./volumes/nexus-data:/nexus-data
     ports:
       - "8081:8081"      
     environment:
-      - POSTGRES_ROOT_PASSWORD=xwiki      
-    networks:
-      - bridge
+      - POSTGRES_ROOT_PASSWORD=xwiki
   keycloak:
     image: quay.io/keycloak/keycloak:14.0.0
     container_name: xwiki-keycloak
     ports:
-      - "8090:8080"      
+      - "8090:8080"
     environment:
       - KEYCLOAK_USER=admin
-      - KEYCLOAK_PASSWORD=admin      
-    networks:
-      - bridge
-
-volumes:
-  postgres-data: {}
-  xwiki-data: {}
-  nexus-data: {}
+      - KEYCLOAK_PASSWORD=admin

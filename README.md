@@ -97,6 +97,3 @@ Controls whether username generation should capitalize each of the  xwiki_user_r
 
 This field determines which IDP's field will be used to identify the user in XWiki. When a user authenticates, 
 this value will be stored in the field specified by `xwiki.authentication.saml2.auth_field` property
-
-
-

@@ -1,11 +1,16 @@
 # Quick Start
 
+The purpose of this walkthrough is to allow a quick test for this plugin.
+Some docker containers will be used to allow this test:
++ Nexus
++ Keycloak
++ Postgres
++ XWiki
+
 Run the following command inside the quick-start folder:
 
 ```sh
-
 $ docker-compose up -d
-
 ```
 
 ## Nexus
@@ -126,7 +131,7 @@ mvn clean install
 3. Copy all files from your maven local repo
 
 ```sh
-$M2_HOME/repository/org/xwiki/contrib/authentication/xwiki-authenticator-saml20/1.0-SNAPSHOT
+$~/.m2/repository/org/xwiki/contrib/authentication/xwiki-authenticator-saml20/1.0-SNAPSHOT
 ```
 
 to the directory created on step 2.
