@@ -7,9 +7,19 @@ Some docker containers will be used to allow this test:
 + Postgres
 + XWiki
 
+### Requirements
+
+Requirement  | Minimum version
+------------ | -------------
+Java    | >= 8
+Maven   | >= 3.8
+Docker  | >= 20
+Curl    | >= 7
+
 Run the following command inside the quick-start folder:
 
 ```sh
+$ chmod +x setup.sh
 $ docker-compose up -d
 ```
 
@@ -65,7 +75,7 @@ mvn clean deploy -DaltDeploymentRepository=repo::default::http://localhost:8081/
 ## XWiki
 
 + URL: http://localhost:8080
-+ Complete the instalations quick-start of XWiki
++ Complete the installations quick-start of XWiki until finished.
 
 ![xwiki_instalation](../images/xwiki_instalation.png)
 
@@ -93,28 +103,18 @@ $ ./setup.sh
 docker-compose restart web
 ```
 
+## Undone the quick start
 
+```sh
+$ docker-compose down
+$ docker volume rm quick-start_nexus-data quick-start_postgres-data quick-start_xwiki-data
+```
 
 ---
 
 ## Manual Setup
 
 Follow the instructions to set up a complete local environment.
-
-### Requirements
-
-Requirement  | Minimum version
------------- | -------------
-Java    | 8
-Maven   | 3.8
-Docker  | 20
-Curl    | 7
-
-### Permissions
-
-```
-$ chmod +x setup.sh
-```
 
 1. Build the project
 

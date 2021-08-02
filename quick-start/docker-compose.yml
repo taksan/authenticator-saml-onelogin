@@ -13,12 +13,12 @@ services:
       DB_DATABASE: xwiki
       DB_HOST: xwiki-postgres-db
     volumes:
-      - ./volumes/xwiki-data:/usr/local/xwiki
+      - xwiki-data:/usr/local/xwiki
   db:
     image: "postgres:12-alpine"
     container_name: xwiki-postgres-db
     volumes:
-      - ./volumes/postgres-data:/var/lib/postgresql/data
+      - postgres-data:/var/lib/postgresql/data
     environment:
       - POSTGRES_ROOT_PASSWORD=xwiki
       - POSTGRES_PASSWORD=xwiki
@@ -29,7 +29,7 @@ services:
     image: sonatype/nexus3:3.32.0
     container_name: xwiki-nexus
     volumes:
-      - ./volumes/nexus-data:/nexus-data
+      - nexus-data:/nexus-data
     ports:
       - "8081:8081"      
     environment:
@@ -42,3 +42,7 @@ services:
     environment:
       - KEYCLOAK_USER=admin
       - KEYCLOAK_PASSWORD=admin
+volumes:
+  postgres-data: {}
+  xwiki-data: {}
+  nexus-data: {}
