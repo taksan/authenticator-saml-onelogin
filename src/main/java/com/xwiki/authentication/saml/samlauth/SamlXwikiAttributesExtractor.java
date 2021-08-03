@@ -38,7 +38,7 @@ public class SamlXwikiAttributesExtractor {
         this.authConfig = authConfig;
     }
 
-    public Saml2XwikiAttributes extractXWikiAttributesFromSaml(Auth auth) {
+    public Saml2XWikiAttributes extractXWikiAttributesFromSaml(Auth auth) {
         return new SamlXwikiAttributesExtractorWithAuth(auth).extractXWikiAttributesFromSaml();
     }
 
@@ -49,7 +49,7 @@ public class SamlXwikiAttributesExtractor {
             this.auth = auth;
         }
 
-        Saml2XwikiAttributes extractXWikiAttributesFromSaml() {
+        Saml2XWikiAttributes extractXWikiAttributesFromSaml() {
             final Map<String, String> samlAttributes = extractSamlAttributes();
 
             final Set<String> groupsFromSaml = newHashSet((defaultIfNull(samlAttributes.get("XWikiGroups"), "")).split(","));
@@ -62,7 +62,7 @@ public class SamlXwikiAttributesExtractor {
                 LOG.debug("SAML samlAttributes are [{}]", samlAttributes);
                 LOG.debug("SAML user data are [{}]", xwikiAttributes);
             }
-            return new Saml2XwikiAttributes(nameID, xwikiAttributes, groupsFromSaml);
+            return new Saml2XWikiAttributes(nameID, xwikiAttributes, groupsFromSaml);
         }
 
         private Map<String, String> extractSamlAttributes() {

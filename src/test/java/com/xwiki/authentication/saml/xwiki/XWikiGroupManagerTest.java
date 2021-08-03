@@ -37,13 +37,18 @@ import org.mockito.Mockito;
 import org.slf4j.LoggerFactory;
 import org.xwiki.model.reference.DocumentReference;
 import org.xwiki.model.reference.DocumentReferenceResolver;
-import static org.junit.jupiter.api.Assertions.*;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.mock;
 
 public class XWikiGroupManagerTest {
     @Test
-    public void whenAddUserToGroup_ShouldAddUserToGivenGroup() {
+    public void whenAddUserToGroup_ShouldAddUserToGivenGroup() throws XWikiException {
         given()
+            .user("ArthurDent")
+                .isNotInGroup("StarshipTroopers")
         .when()
             .user("ArthurDent").isAddedToGroup("StarshipTroopers")
         .then()
@@ -76,8 +81,10 @@ public class XWikiGroupManagerTest {
     }
 
     @Test
-    public void whenRemoveUserFromGroupWhereHeIsnt_ShouldNotChangeGroupMembership() {
+    public void whenRemoveUserFromGroupWhereHeIsnt_ShouldNotChangeGroupMembership() throws XWikiException {
         given()
+            .user("ArthurDent")
+                .isNotInGroup("StarshipTroopers")
         .when()
             .user("ArthurDent").isRemovedFromGroup("StarshipTroopers")
         .then()
@@ -89,7 +96,7 @@ public class XWikiGroupManagerTest {
     public void whenUserAlreadyMemberOfGroupAndReceiveAnewGroup_ShouldBeInBothGroups() throws XWikiException {
         given()
             .user("ArthurDent")
-                .isInGroups("StarshipTroopers", "BattlestarGalactica")
+                .isInGroups("BattlestarGalactica")
         .when()
             .user("ArthurDent").isAddedToGroup("StarshipTroopers")
         .then()
@@ -114,21 +121,25 @@ public class XWikiGroupManagerTest {
     @Test
     public void whenAddUserToGroupWithEmptyName_ShouldNotCreateGroup() {
         given()
+            .user("ArthurDent")
+                .exists()
         .when()
             .user("ArthurDent").isAddedToGroup("")
         .then()
             .group("")
-                .doesntExists();
+                .doesntExist();
     }
 
     @Test
-    public void whenRemoveUserFromGroupWithEmptyName_ShouldNotCreateGroup() {
+    public void whenRemoveUserFromGroupWithEmptyName_ShouldNotCreateGroup() throws XWikiException {
         given()
+            .user("ArthurDent")
+                .exists()
         .when()
             .user("ArthurDent").isRemovedFromGroup("")
         .then()
             .group("")
-                .doesntExists();
+                .doesntExist();
     }
 
     @Test
@@ -152,11 +163,11 @@ public class XWikiGroupManagerTest {
     }
 
 
-    private DSL given(){
-        return new DSL();
+    private GivenDSL given() {
+        return new GivenDSL();
     }
 
-    private static class DSL {
+    private static class GivenDSL {
         private final XWikiContext context = new XWikiContext();
         private XWikiGroupManager groupManager;
 
@@ -164,9 +175,9 @@ public class XWikiGroupManagerTest {
                 (docRef, parameters) -> new DocumentReference("XWiki", "XWikiGroups", docRef);
 
         final XWikiMock xwiki;
-        Logger root = (Logger) LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME);
 
-        public DSL() {
+        public GivenDSL() {
+            final Logger root = (Logger) LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME);
             root.setLevel(Level.OFF);
 
             XWikiRequest request = mock(XWikiRequest.class);
@@ -184,7 +195,7 @@ public class XWikiGroupManagerTest {
             context.setWiki(xwiki);
         }
 
-        public UserConfigDSL user(String userName){
+        public UserConfigDSL user(String userName) {
             return new UserConfigDSL(userName);
         }
 
@@ -192,8 +203,8 @@ public class XWikiGroupManagerTest {
             return new WhenDSL();
         }
 
-        public DSL theresAFailureInGettingDocuments(XWikiException exception) {
-            context.setWiki(new XWiki(){
+        public GivenDSL theresAFailureInGettingDocuments(XWikiException exception) {
+            context.setWiki(new XWiki() {
                 @Override
                 public XWikiDocument getDocument(DocumentReference reference, XWikiContext context) throws XWikiException {
                     throw exception;
@@ -207,14 +218,23 @@ public class XWikiGroupManagerTest {
 
             public UserConfigDSL(String userName) {
                 this.userName = userName;
+                groupManager = new XWikiGroupManager(currentMixedDocumentReferenceResolver);
             }
 
-            public DSL isInGroups(String... groupNames) throws XWikiException {
-                for(String groupName: groupNames){
-                    groupManager = new XWikiGroupManager(currentMixedDocumentReferenceResolver);
+            public GivenDSL isInGroups(String... groupNames) throws XWikiException {
+                for(String groupName: groupNames) {
                     groupManager.addUserToGroup(userName, groupName, context);
                  }
-                return DSL.this;
+                return GivenDSL.this;
+            }
+
+            public GivenDSL isNotInGroup(String groupName) throws XWikiException {
+                groupManager.removeUserFromGroup(userName, groupName, context);
+                return GivenDSL.this;
+            }
+
+            public GivenDSL exists() {
+                return GivenDSL.this;
             }
         }
 
@@ -227,7 +247,7 @@ public class XWikiGroupManagerTest {
                 return this;
             }
 
-            public ThenDSL isRemovedFromGroup(String groupName){
+            public ThenDSL isRemovedFromGroup(String groupName) {
                 try {
                     groupManager = new XWikiGroupManager(currentMixedDocumentReferenceResolver);
                     groupManager.removeUserFromGroup(userName, groupName, context);
@@ -236,12 +256,12 @@ public class XWikiGroupManagerTest {
                     return new ThenDSL(e);
                 }
             }
-            public ThenDSL isAddedToGroup(String groupName){
+            public ThenDSL isAddedToGroup(String groupName) {
                 try{
                     groupManager = new XWikiGroupManager(currentMixedDocumentReferenceResolver);
                     groupManager.addUserToGroup(userName, groupName, context);
                     return new ThenDSL(null);
-                }catch (XWikiException e){
+                }catch (XWikiException e) {
                     return new ThenDSL(e);
                 }
             }
@@ -259,7 +279,7 @@ public class XWikiGroupManagerTest {
                 return this;
             }
 
-            public GroupConfigDSL group(String groupName){
+            public GroupConfigDSL group(String groupName) {
                 return new GroupConfigDSL(groupName);
             }
 
@@ -273,27 +293,26 @@ public class XWikiGroupManagerTest {
             }
 
             public ThenDSL isInGroup(String groupName) {
+                final BaseObject obj = findUser(groupName);
+                assertNotNull(obj, "User " + userName + " is not in the group " + groupName);
+                return this;
+            }
+
+            public ThenDSL isntInGroup(String groupName) {
+                BaseObject obj = findUser(groupName);
+                assertNull(obj);
+
+                return this;
+            }
+
+            private BaseObject findUser(String groupName) {
                 String fullGroupName = "XWikiGroups." + groupName;
                 XWikiDocument groupDoc =
                         xwiki.getSavedDocuments().stream().filter(doc -> doc.toString().equals(fullGroupName)).findFirst()
                                 .orElseGet(() -> Assertions.fail("Group " + groupName + " doesn't exist"));
 
                 BaseClass ref = xwiki.getGroupClass(context);
-                BaseObject obj = groupDoc.getXObject(ref.getDocumentReference(), "member", this.userName);
-                assertNotNull(obj, "User " + this.userName + " is not in the group " + groupName);
-                return this;
-            }
-
-            public ThenDSL isntInGroup(String groupName) {
-                String fullGroupName = "XWikiGroups."+groupName;
-                XWikiDocument groupDoc = xwiki.getSavedDocuments().stream().filter(doc -> doc.toString().equals(fullGroupName)).findFirst()
-                                                     .orElseGet(() -> Assertions.fail("Group " + groupName + " doesn't exist"));
-
-                BaseClass ref = xwiki.getGroupClass(context);
-                BaseObject obj =  groupDoc.getXObject(ref.getDocumentReference(), "member", this.userName);
-                assertNull(obj);
-
-                return this;
+                return groupDoc.getXObject(ref.getDocumentReference(), "member", userName);
             }
 
             class GroupConfigDSL {
@@ -303,7 +322,7 @@ public class XWikiGroupManagerTest {
                     this.groupName = groupName;
                 }
 
-                public void doesntExists() {
+                public void doesntExist() {
                     String fullGroupName = "XWikiGroups."+groupName;
                     if(xwiki.getSavedDocuments().stream().anyMatch(doc -> doc.toString().equals(fullGroupName)))
                         Assertions.fail("Group " + groupName + " exist");

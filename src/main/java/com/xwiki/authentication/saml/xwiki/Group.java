@@ -68,16 +68,12 @@ public class Group {
         return groupMembers.stream().filter(Objects::nonNull).collect(Collectors.toList());
     }
 
-    public String groupName() {
+    public String getGroupName() {
         return groupDoc.getDocumentReference().getName();
     }
 
     public void addMember(String xwikiUserName) throws XWikiException {
-        addMemberToGroup(xwikiUserName);
-    }
-
-    private void addMemberToGroup(String xwikiUserName) throws XWikiException {
-        BaseObject memberObj = groupDoc.newXObject(getGroupClass().getDocumentReference(), context);
+        final BaseObject memberObj = groupDoc.newXObject(getGroupClass().getDocumentReference(), context);
         getGroupClass().fromMap(singletonMap(XWIKI_GROUP_MEMBERFIELD, xwikiUserName), memberObj);
     }
 
@@ -89,7 +85,7 @@ public class Group {
         return groupDoc.isNew();
     }
 
-    void setupNewGroupDocument() {
+    public void setupNewGroupDocument() {
         groupDoc.setSyntax(Syntax.XWIKI_2_0);
         groupDoc.setContent("{{include reference='XWiki.XWikiGroupSheet' /}}");
     }
@@ -99,7 +95,7 @@ public class Group {
     }
 
     public void removeUser(String xwikiUserName) throws XWikiException {
-        getUserMembership(xwikiUserName).map(groupDoc::removeXObject);
+        getUserMembership(xwikiUserName).ifPresent(groupDoc::removeXObject);
     }
 
     private Optional<BaseObject> getUserMembership(String xwikiUserName) throws XWikiException {

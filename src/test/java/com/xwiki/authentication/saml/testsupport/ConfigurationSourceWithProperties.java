@@ -23,13 +23,12 @@ import org.apache.commons.lang3.NotImplementedException;
 import org.xwiki.configuration.ConfigurationSource;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
-import java.util.stream.Collectors;
 
 public class ConfigurationSourceWithProperties implements ConfigurationSource {
     private Properties properties = new Properties();
 
+    @SuppressWarnings("unchecked")
     @Override
     public <T> T getProperty(String key, T defaultValue) {
         return (T) properties.getProperty(key, (String) defaultValue);

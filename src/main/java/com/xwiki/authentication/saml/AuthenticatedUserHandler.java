@@ -29,8 +29,8 @@ import static com.xwiki.authentication.saml.samlauth.SamlAuthenticator.PROFILE_P
 
 public class AuthenticatedUserHandler {
     private static final Logger LOG = LoggerFactory.getLogger(AuthenticatedUserHandler.class);
-    private XWikiContext context;
-    private DocumentReferenceResolver<String> currentMixedDocumentReferenceResolver;
+    private final XWikiContext context;
+    private final DocumentReferenceResolver<String> currentMixedDocumentReferenceResolver;
 
     public AuthenticatedUserHandler(XWikiContext context, DocumentReferenceResolver<String> currentMixedDocumentReferenceResolver) {
         this.context = context;

@@ -52,7 +52,7 @@ public class User {
         return context.getWiki().exists(userReference, context);
     }
 
-    public DocumentReference getUserReference(){
+    public DocumentReference getUserReference() {
         return userReference;
     }
 
@@ -64,8 +64,9 @@ public class User {
         userObj.set(field, newValue, context);
     }
 
+    @SuppressWarnings("rawtypes")
     private String getUserProperty(BaseObject userObj, String field) throws XWikiException {
-        final BaseProperty<?> prop = (BaseProperty<?>) userObj.get(field);
+        final BaseProperty prop = (BaseProperty) userObj.get(field);
         return (prop == null || prop.getValue() == null) ? null : prop.getValue().toString();
     }
 

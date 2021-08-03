@@ -22,7 +22,8 @@ import static java.util.Arrays.asList;
 public class NonAuthenticatedAccessHandler {
 
     private static final Logger LOG = LoggerFactory.getLogger(NonAuthenticatedAccessHandler.class);
-    private XWikiContext context;
+    private static final List<String> allowedActions = asList("login", "skin", "ssx", "logout", "loginsubmit");
+    private final XWikiContext context;
     private final OneLoginAuth loginAuthFactory;
     private final Saml2Settings samlSettings;
 
@@ -44,7 +45,6 @@ public class NonAuthenticatedAccessHandler {
     }
 
     private boolean isActionAllowedForAnonymousUsers() {
-        final List<String> allowedActions = asList("login", "skin", "ssx", "logout", "loginsubmit");
         return allowedActions.contains(context.getAction());
     }
 

@@ -44,7 +44,7 @@ public class SamlAuthConfig {
     public final boolean shouldCapitalizeUserNames;
     public final boolean allowLoginFallback;
 
-    public SamlAuthConfig(
+    private SamlAuthConfig(
             String spEntityId,
             String assertionConsumerServiceUrl,
             String nameIdFormat,

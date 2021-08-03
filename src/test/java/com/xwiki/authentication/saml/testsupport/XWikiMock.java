@@ -27,14 +27,9 @@ import com.xpn.xwiki.objects.StringProperty;
 import com.xpn.xwiki.objects.classes.BaseClass;
 import com.xpn.xwiki.objects.classes.StringClass;
 import com.xpn.xwiki.objects.meta.StringMetaClass;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
+
+import java.util.*;
+
 import org.xwiki.model.reference.DocumentReference;
 import org.xwiki.model.reference.EntityReference;
 import org.xwiki.rendering.syntax.Syntax;
@@ -62,12 +57,9 @@ public class XWikiMock extends XWiki {
             @SuppressWarnings("rawtypes")
             @Override
             public Collection getFieldList() {
-                final Map<String, Object> fields = new LinkedHashMap<>();
                 final StringMetaClass metaClass = new StringMetaClass();
                 final StringClass prop = new StringClass("member", "XWikiGroups", metaClass);
-                fields.put("member", prop);
-
-                return fields.values();
+                return Collections.singletonList(prop);
             }
         };
 
@@ -90,7 +82,7 @@ public class XWikiMock extends XWiki {
         return createUserResult;
     }
 
-    public void makeCreateUserReturnError(){
+    public void makeCreateUserReturnError() {
         createUserResult = -3;
     }
 
@@ -103,8 +95,7 @@ public class XWikiMock extends XWiki {
     }
 
     public XWikiDocument getDocument(DocumentReference reference, XWikiContext context) {
-        docByReference.putIfAbsent(reference, createDocumentForReference(reference));
-        return docByReference.get(reference);
+        return docByReference.computeIfAbsent(reference, this::createDocumentForReference);
     }
 
     private XWikiDocument createDocumentForReference(DocumentReference reference) {
@@ -124,9 +115,7 @@ public class XWikiMock extends XWiki {
             }
 
             public List<BaseObject> getXObjects(DocumentReference classReference) {
-                createdObjectsByEntity.putIfAbsent(classReference.toString(), new ArrayList<>());
-
-                return createdObjectsByEntity.get(classReference.toString());
+                return createdObjectsByEntity.computeIfAbsent(classReference.toString(), (x) -> new ArrayList<>());
             }
 
             public BaseObject getXObject(DocumentReference classReference, String key, String value) {

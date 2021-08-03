@@ -76,7 +76,7 @@ public class SamlAuthenticator {
     public XWikiUser checkAuth(XWikiContext context,
                                SupplierWithException<XWikiUser, XWikiException> defaultAuthHandler)
             throws XWikiException {
-        final Optional<String> samlUserName = getSAMLAuthenticatedUserFromSession(context);
+        final Optional<String> samlUserName = getSamlAuthenticatedUserFromSession(context);
         if (samlUserName.isPresent())
             return new AuthenticatedUserHandler(context, currentMixedDocumentReferenceResolver).handle(samlUserName.get());
 
@@ -102,7 +102,7 @@ public class SamlAuthenticator {
         return context.getRequest().getParameter("SAMLResponse");
     }
 
-    public Optional<String> getSAMLAuthenticatedUserFromSession(XWikiContext context) {
+    public Optional<String> getSamlAuthenticatedUserFromSession(XWikiContext context) {
         return Optional.ofNullable((String)context.getRequest().getSession(true).getAttribute(authConfig.authFieldName));
     }
 }

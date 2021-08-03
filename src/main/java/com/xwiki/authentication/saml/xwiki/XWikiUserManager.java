@@ -23,7 +23,7 @@ import com.xpn.xwiki.XWiki;
 import com.xpn.xwiki.XWikiContext;
 import com.xpn.xwiki.XWikiException;
 import com.xwiki.authentication.saml.samlauth.SamlAuthConfig;
-import com.xwiki.authentication.saml.samlauth.Saml2XwikiAttributes;
+import com.xwiki.authentication.saml.samlauth.Saml2XWikiAttributes;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -36,7 +36,10 @@ import org.xwiki.model.reference.DocumentReference;
 import org.xwiki.model.reference.DocumentReferenceResolver;
 import org.xwiki.model.reference.EntityReference;
 import org.xwiki.model.reference.EntityReferenceSerializer;
-import static com.xpn.xwiki.XWikiException.*;
+
+import static com.xpn.xwiki.XWikiException.ERROR_XWIKI_APP_VALIDATE_USER;
+import static com.xpn.xwiki.XWikiException.ERROR_XWIKI_USER_CREATE;
+import static com.xpn.xwiki.XWikiException.MODULE_XWIKI_PLUGINS;
 import static com.xwiki.authentication.saml.samlauth.SamlAuthenticator.PROFILE_PARENT;
 import static java.util.Arrays.asList;
 
@@ -58,29 +61,31 @@ public class XWikiUserManager {
         this.currentMixedDocumentReferenceResolver = currentMixedDocumentReferenceResolver;
     }
 
-    public DocumentReference getOrCreateUserIfNeeded(XWikiContext context, Saml2XwikiAttributes attributes) throws XWikiException {
+    public DocumentReference getOrCreateUserIfNeeded(XWikiContext context, Saml2XWikiAttributes attributes) throws XWikiException {
         return new UserManagerWithContextAndAttributes(context, attributes).getOrCreateUserIfNeeded();
     }
 
     class UserManagerWithContextAndAttributes {
         private final XWikiContext context;
-        private final Saml2XwikiAttributes attributes;
+        private final Saml2XWikiAttributes attributes;
 
-        public UserManagerWithContextAndAttributes(XWikiContext context, Saml2XwikiAttributes attributes) {
+        public UserManagerWithContextAndAttributes(XWikiContext context, Saml2XWikiAttributes attributes) {
             this.context = context;
             this.attributes = attributes;
         }
 
         public DocumentReference getOrCreateUserIfNeeded() throws XWikiException {
-            final User user = getXWikiUsername(attributes.nameID);
+            final User user = getXWikiUserByNameID(attributes.nameID);
 
             final String wikiId = context.getWikiId();
             try {
                 // Switch to main wiki to force users to be global users
                 context.setWikiId(context.getMainXWiki());
 
-                if(user.exists())
-                    return syncUserFields(user);
+                if (user.exists()) {
+                    syncUserFields(user);
+                    return user.getUserReference();
+                }
 
                 return createUserWithAttributes(user,attributes);
             } finally {
@@ -88,17 +93,16 @@ public class XWikiUserManager {
             }
         }
 
-        private DocumentReference createUserWithAttributes(User user, Saml2XwikiAttributes attributes) throws XWikiException {
+        private DocumentReference createUserWithAttributes(User user, Saml2XWikiAttributes attributes) throws XWikiException {
             LOG.info("Will create new user [{}]", user);
 
             user.createUserWithAttributes(attributes.xwikiAttributes);
 
             LOG.info("User [{}] has been successfully created", user);
-
             return user.getUserReference();
         }
 
-        private User getXWikiUsername(String nameID)
+        private User getXWikiUserByNameID(String nameID)
                 throws XWikiException{
             final Optional<String> validUserName = findUser(nameID);
 
@@ -115,17 +119,17 @@ public class XWikiUserManager {
         private Optional<String> findUser(String nameID) throws XWikiException {
             final String sql =
                     "SELECT DISTINCT " +
-                            "   obj.name " +
-                            "FROM " +
-                            "   BaseObject AS obj, StringProperty AS nameidprop " +
-                            "WHERE " +
-                            "   obj.className = ?1 " +
-                            "AND " +
-                            "   obj.id = nameidprop.id.id " +
-                            "AND " +
-                            "   nameidprop.id.name = ?2 " +
-                            "AND " +
-                            "   nameidprop.value = ?3";
+                    "   obj.name " +
+                    "FROM " +
+                    "   BaseObject AS obj, StringProperty AS nameidprop " +
+                    "WHERE " +
+                    "   obj.className = ?1 " +
+                    "AND " +
+                    "   obj.id = nameidprop.id.id " +
+                    "AND " +
+                    "   nameidprop.id.name = ?2 " +
+                    "AND " +
+                    "   nameidprop.value = ?3";
 
             final List<String> list = context.getWiki().getStore().search(sql, 1, 0,
                     asList(compactStringEntityReferenceSerializer.serialize(SAML_XCLASS),
@@ -138,7 +142,7 @@ public class XWikiUserManager {
                 throw new XWikiException(
                         MODULE_XWIKI_PLUGINS,
                         ERROR_XWIKI_APP_VALIDATE_USER,
-                        "Unexpected error, user found, but with name is null");
+                        "Unexpected error, user found but name is null");
             return Optional.of(userName);
         }
 
@@ -177,7 +181,7 @@ public class XWikiUserManager {
             return userName.toString();
         }
 
-        private DocumentReference syncUserFields(User user)
+        private void syncUserFields(User user)
                 throws XWikiException {
 
             boolean updated = false;
@@ -197,8 +201,6 @@ public class XWikiUserManager {
                 user.save();
                 LOG.info("User [{}] has been successfully updated", user.getUserReference());
             }
-            return user.getUserReference();
         }
-
     }
 }

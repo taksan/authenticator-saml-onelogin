@@ -24,7 +24,7 @@ import com.onelogin.saml2.settings.Saml2Settings;
 import com.xpn.xwiki.XWikiContext;
 import com.xpn.xwiki.XWikiException;
 import com.xpn.xwiki.user.api.XWikiUser;
-import com.xwiki.authentication.saml.samlauth.Saml2XwikiAttributes;
+import com.xwiki.authentication.saml.samlauth.Saml2XWikiAttributes;
 import com.xwiki.authentication.saml.samlauth.SamlAuthConfig;
 import com.xwiki.authentication.saml.samlauth.SamlXwikiAttributesExtractor;
 import com.xwiki.authentication.saml.xwiki.XWikiGroupManager;
@@ -78,11 +78,11 @@ public class SamlAuthenticationHandler {
             auth.processResponse();
 
             if (auth.isAuthenticated()) {
-                 final Saml2XwikiAttributes attributes = attributesExtractor.extractXWikiAttributesFromSaml(auth);
+                final Saml2XWikiAttributes attributes = attributesExtractor.extractXWikiAttributesFromSaml(auth);
                 return setupAuthenticatedUser(attributes);
             }
 
-            LOG.info("Saml authentication failed {}", auth.getLastErrorReason(), auth.getLastValidationException());
+            LOG.error(String.format("Saml authentication failed %s", auth.getLastErrorReason()), auth.getLastValidationException());
             return null;
         } catch (com.onelogin.saml2.exception.Error e) {
             LOG.error("Saml authentication failed due to configuration issues", e);
@@ -93,17 +93,17 @@ public class SamlAuthenticationHandler {
         }
     }
 
-     private XWikiUser setupAuthenticatedUser(Saml2XwikiAttributes attributes) throws IOException, XWikiException {
+     private XWikiUser setupAuthenticatedUser(Saml2XWikiAttributes attributes) throws IOException, XWikiException {
         final DocumentReference userReference = xWikiUserManager.getOrCreateUserIfNeeded(context, attributes);
 
-         new XWikiUserGroupSynchronizer(groupManager, context).syncUserGroups(userReference, attributes);
+        new XWikiUserGroupSynchronizer(groupManager, context).syncUserGroups(userReference, attributes);
 
         addUserToTheSession(userReference);
         redirectToOriginalRequestedUrl();
 
         LOG.info("User [{}] authentication complete", attributes.nameID);
         return new XWikiUser(userReference, context.isMainWiki());
-    }
+     }
 
     private void addUserToTheSession(DocumentReference userReference) {
         LOG.debug("Setting authentication in session for user [{}]", userReference);
@@ -113,7 +113,7 @@ public class SamlAuthenticationHandler {
 
     private void redirectToOriginalRequestedUrl() throws IOException {
         final String originalSourceUrl = (String) context.getRequest().getSession().getAttribute(XWikiSAML20Authenticator.ORIGINAL_URL_SESSION_KEY);
-        LOG.debug("Will redirect to [{}] after successful authentication", originalSourceUrl);
+        LOG.debug("Adding redirection header to [{}], since we got a successful authentication", originalSourceUrl);
         context.getResponse().sendRedirect(originalSourceUrl);
         context.setFinished(true);
     }

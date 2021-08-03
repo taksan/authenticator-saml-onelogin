@@ -25,7 +25,7 @@ import com.xpn.xwiki.doc.XWikiDocument;
 import com.xpn.xwiki.objects.BaseObject;
 import com.xpn.xwiki.objects.StringProperty;
 import com.xpn.xwiki.objects.classes.StringClass;
-import com.xwiki.authentication.saml.samlauth.Saml2XwikiAttributes;
+import com.xwiki.authentication.saml.samlauth.Saml2XWikiAttributes;
 import java.util.Optional;
 import java.util.Set;
 import org.xwiki.model.reference.DocumentReference;
@@ -41,7 +41,7 @@ public class XWikiUserGroupSynchronizer {
         this.context = context;
     }
 
-    public void syncUserGroups(DocumentReference userReference, Saml2XwikiAttributes attributes) throws XWikiException {
+    public void syncUserGroups(DocumentReference userReference, Saml2XWikiAttributes attributes) throws XWikiException {
         final XWikiDocument userDoc = context.getWiki().getDocument(userReference, context);
         final BaseObject userObj = userDoc.getXObject(XWikiUserManager.USER_XCLASS);
 
@@ -55,7 +55,7 @@ public class XWikiUserGroupSynchronizer {
     private void removeUserFromGroupsMissingInSamlGroups(
             DocumentReference userReference,
             BaseObject userObj,
-            Saml2XwikiAttributes attributes)
+            Saml2XWikiAttributes attributes)
             throws XWikiException {
 
         final Optional<StringProperty> samlManagedGroupsProp = Optional.ofNullable((StringProperty) userObj.get(PROPERTY_TO_STORE_SAML_MANAGED_GROUPS));
@@ -65,12 +65,12 @@ public class XWikiUserGroupSynchronizer {
             groupManager.removeUserFromGroup(userReference.getName(), group, context);
     }
 
-    private void addUserToGroupsInSamlGroups(DocumentReference userReference, Saml2XwikiAttributes attributes) throws XWikiException {
+    private void addUserToGroupsInSamlGroups(DocumentReference userReference, Saml2XWikiAttributes attributes) throws XWikiException {
         for (String group: attributes.groupsFromSaml)
             groupManager.addUserToGroup(userReference.getName(), group, context);
     }
 
-    private void saveUserWithUpdatedGroups(XWikiDocument userDoc, BaseObject userObj, Saml2XwikiAttributes attributes) throws XWikiException {
+    private void saveUserWithUpdatedGroups(XWikiDocument userDoc, BaseObject userObj, Saml2XWikiAttributes attributes) throws XWikiException {
         userObj.put(PROPERTY_TO_STORE_SAML_MANAGED_GROUPS, new StringClass().fromString(String.join(",", attributes.groupsFromSaml)));
         context.getWiki().saveDocument(userDoc, context);
     }

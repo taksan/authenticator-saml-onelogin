@@ -40,7 +40,7 @@ import org.xwiki.model.reference.DocumentReference;
 import org.xwiki.model.reference.DocumentReferenceResolver;
 import org.xwiki.model.reference.EntityReferenceSerializer;
 
-public class XWikiSAML20Authenticator extends XWikiAuthServiceImpl{
+public class XWikiSAML20Authenticator extends XWikiAuthServiceImpl {
     public static final String ORIGINAL_URL_SESSION_KEY = "saml20_url";
     private static final Logger LOG = LoggerFactory.getLogger(XWikiSAML20Authenticator.class);
 
@@ -71,8 +71,7 @@ public class XWikiSAML20Authenticator extends XWikiAuthServiceImpl{
     }
 
     @Override
-    public void showLogin(XWikiContext context) throws XWikiException
-    {
+    public void showLogin(XWikiContext context) throws XWikiException {
         final XWikiRequest request = context.getRequest();
 
         // Remember the requested URL, so we can return to it afterwards
@@ -83,22 +82,21 @@ public class XWikiSAML20Authenticator extends XWikiAuthServiceImpl{
     }
 
     @Override
-    public XWikiUser checkAuth(XWikiContext context) throws XWikiException{
+    public XWikiUser checkAuth(XWikiContext context) throws XWikiException {
         return authenticator.checkAuth(context, () -> super.checkAuth(context));
     }
 
     @Override
     public XWikiUser checkAuth(String username, String password, String rememberMe, XWikiContext context)
-        throws XWikiException
-    {
+        throws XWikiException {
         LOG.debug("Invoked checkAuth(String username, String password, String rememberMe, XWikiContext context)");
         // We can't validate a password, so we either forward to the default authenticator or return the cached auth
-        final Optional<String> auth = authenticator.getSAMLAuthenticatedUserFromSession(context);
+        final Optional<String> auth = authenticator.getSamlAuthenticatedUserFromSession(context);
 
         if (auth.isPresent())
             return checkAuth(context);
-        else
-            return super.checkAuth(context);
+
+        return super.checkAuth(context);
     }
 
     private String getSourceUrl(XWikiContext context, XWikiRequest request) throws XWikiException {

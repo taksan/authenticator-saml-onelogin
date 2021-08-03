@@ -61,11 +61,14 @@ import java.util.function.Consumer;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class SamlAuthenticatorTest {
     @Test
@@ -75,11 +78,11 @@ public class SamlAuthenticatorTest {
             .currentRequestUrlIs("https://happy")
         .whenAuthenticationIsVerified()
         .then()
-            .shouldRedirectToIdentityProviderAndThenReturnTo("https://happy");
+            .shouldStartAuthenticationWithUrlForRedirectionAfterCompletion("https://happy");
     }
 
     @Test
-    public void whenLoggedUserInByCookieAccess_ShouldReturnTheSameLoggedInUser() throws XWikiException, ComponentLookupException {
+    public void whenUserLoggedInByCookieAccess_ShouldReturnTheSameLoggedInUser() throws XWikiException, ComponentLookupException {
         given()
             .userIsLoggedInByCookie("ArthurDent")
         .whenAuthenticationIsVerified()
@@ -88,7 +91,7 @@ public class SamlAuthenticatorTest {
     }
 
     @Test
-    public void whenUserIsAlreadyLoggedInTheSession_ShouldReturnSameLoggedUser() throws Exception {
+    public void whenUserIsAlreadyLoggedInTheSession_ShouldReturnSameLoggedInUser() throws Exception {
         given()
             .userIsLoggedInTheSession("ArthurDent")
         .whenAuthenticationIsVerified()
@@ -137,7 +140,7 @@ public class SamlAuthenticatorTest {
     }
 
     @Test
-    public void whenAnonymousUserAccessWithLoginSubmit_ShouldBeHandledByDefaultHandler() throws XWikiException, ComponentLookupException {
+    public void whenAnonymousUserAccessWithLoginSubmitAction_ShouldBeHandledByDefaultHandler() throws XWikiException, ComponentLookupException {
         given()
             .userIsAnonymous()
             .accessWithGivenAction("loginsubmit")
@@ -435,8 +438,8 @@ public class SamlAuthenticatorTest {
             return this;
         }
 
-        public GivenDSL xwiki(ConsumerWithThrowable<XWikiUsersDSL,Exception> configuration) throws Exception {
-            configuration.accept(new XWikiUsersDSL());
+        public GivenDSL xwiki(ConsumerWithThrowable<XWikiUsersDSL,Exception> usersConsumer) throws Exception {
+            usersConsumer.accept(new XWikiUsersDSL());
             return this;
         }
 
@@ -446,28 +449,28 @@ public class SamlAuthenticatorTest {
             return this;
         }
 
-        public GivenDSL userIsLoggedInByCookie(String loggedUserName){
+        public GivenDSL userIsLoggedInByCookie(String loggedUserName) {
             loggedWikiUser = mock(XWikiUser.class);
             when(loggedWikiUser.getFullName()).thenReturn(loggedUserName);
             when(request.getCookie("username")).thenReturn(mock(Cookie.class));
             return this;
         }
 
-        public GivenDSL userIsLoggedInTheSession(String loggedUserName){
+        public GivenDSL userIsLoggedInTheSession(String loggedUserName) {
              when(context.getRequest().getSession(true).getAttribute(any())).thenReturn(loggedUserName);
             return this;
         }
 
-        public GivenDSL currentRequestUrlIs(String currentRequestUrl){
+        public GivenDSL currentRequestUrlIs(String currentRequestUrl) {
             when(request.getRequestURL()).thenReturn(new StringBuffer(currentRequestUrl));
             return this;
         }
 
-        public GivenDSL identityProviderAuthenticatedUser(Consumer<IdpUserData> userConfiguration) {
+        public GivenDSL identityProviderAuthenticatedUser(Consumer<IdpUserData> idpUserConsumer) {
             when(request.getParameter("SAMLResponse")).thenReturn("Some SAML Response");
             when(samlAuth.isAuthenticated()).thenReturn(true);
             IdpUserData idpUserData = new IdpUserData();
-            userConfiguration.accept(idpUserData);
+            idpUserConsumer.accept(idpUserData);
             when(samlAuth.getNameId()).thenReturn(idpUserData.id);
 
             final Map<String, List<String>> samlAttributes = new LinkedHashMap<>();
@@ -479,7 +482,7 @@ public class SamlAuthenticatorTest {
             when(samlAuth.getAttributesName()).thenReturn(new ArrayList<>(samlAttributes.keySet()));
             when(samlAuth.getAttributes()).thenReturn(samlAttributes);
 
-            return GivenDSL.this;
+            return this;
         }
 
         public GivenDSL shouldCapitalize(boolean shouldCapitalize) {
@@ -496,7 +499,7 @@ public class SamlAuthenticatorTest {
                     }
                 );
                 return new ThenDSLForDefaultHandler(handled.get());
-            }catch (XWikiException e){
+            } catch (XWikiException e) {
                 throw new IllegalStateException("checkAuth default verification failed", e);
             }
         }
@@ -517,7 +520,7 @@ public class SamlAuthenticatorTest {
                     when(xwikiStore.exists(any(), any())).thenReturn(false);
                     when(xwikiStore.search(anyString(), anyInt(), anyInt(), any(List.class), any()))
                             .thenReturn(emptyList());
-                }catch (XWikiException e){
+                }catch (XWikiException e) {
                     throw new RuntimeException(e);
                 }
             }
@@ -526,7 +529,7 @@ public class SamlAuthenticatorTest {
                     when(xwikiStore.exists(any(), any())).thenReturn(true);
                     when(xwikiStore.search(anyString(), anyInt(), anyInt(), any(List.class), any()))
                             .thenReturn(singletonList(userName));
-                }catch (XWikiException e){
+                }catch (XWikiException e) {
                     throw new RuntimeException(e);
                 }
                 return this;
@@ -555,7 +558,7 @@ public class SamlAuthenticatorTest {
             try {
                 final XWikiUser xWikiUser = subject.checkAuth(context, () -> loggedWikiUser);
                 return new ThenDSL(xWikiUser, null);
-            }catch (XWikiException xWikiException){
+            }catch (XWikiException xWikiException) {
                 return new ThenDSL(null, xWikiException);
             }
         }
@@ -587,11 +590,11 @@ public class SamlAuthenticatorTest {
                 return this;
             }
 
-            public void shouldRedirectToIdentityProviderAndThenReturnTo(String returnUrl) throws IOException, SettingsException {
+            public void shouldStartAuthenticationWithUrlForRedirectionAfterCompletion(String returnUrl) throws IOException, SettingsException {
                 Mockito.verify(samlAuth).login(returnUrl);
             }
 
-            public void authenticatedUserIs(String expectedUserName){
+            public void authenticatedUserIs(String expectedUserName) {
                 assertEquals(expectedUserName, xWikiUser.getFullName());
             }
 
@@ -660,7 +663,7 @@ public class SamlAuthenticatorTest {
             this.defaultHandlerInvoked = defaultHandlerInvoked;
         }
 
-        public void verifyDefaultHandlerIsInvoked(){
+        public void verifyDefaultHandlerIsInvoked() {
             assertTrue(this.defaultHandlerInvoked, "Default handler not invoked");
         }
 

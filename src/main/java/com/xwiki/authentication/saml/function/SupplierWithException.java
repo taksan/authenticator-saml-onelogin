@@ -20,6 +20,6 @@
 package com.xwiki.authentication.saml.function;
 
 @FunctionalInterface
-public interface SupplierWithException <T, E extends Exception> {
+public interface SupplierWithException<T, E extends Exception> {
     T execute() throws E;
 }
