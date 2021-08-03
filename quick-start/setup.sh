@@ -4,11 +4,11 @@ set -e -o nounset
 
 curl -sS http://localhost:8090/auth/realms/MyNewRealm/protocol/saml/descriptor > metadata.xml
 
-key_cloak_sp_entity_id="xwiki"
-xwiki_url_login="http://localhost:8080/bin/loginsubmit/XWiki/XWikiLogin"
-key_cloak_idp_entity_id=$(sed 's/.* entityID="\([^"]*\)".*/\1/' metadata.xml)
-key_cloak_single_sign_on_service=$(sed -E 's/.*SingleSignOnService.+Location="([^"]+)".*/\1/' metadata.xml)
-key_cloak_certificate=$(sed -E 's/.*<ds:X509Certificate>([^<]*).*/\1/' metadata.xml)
+KEY_CLOAK_SP_ENTITY_ID="xwiki"
+XWIKI_URL_LOGIN="http://localhost:8080/bin/loginsubmit/XWiki/XWikiLogin"
+KEY_CLOAK_IDP_ENTITY_ID=$(sed 's/.* entityID="\([^"]*\)".*/\1/' metadata.xml)
+KEY_CLOAK_SINGLE_SIGN_ON_SERVICE=$(sed -E 's/.*SingleSignOnService.+Location="([^"]+)".*/\1/' metadata.xml)
+KEY_CLOAK_CERTIFICATE=$(sed -E 's/.*<ds:X509Certificate>([^<]*).*/\1/' metadata.xml)
 
 
 docker-compose exec xwiki bash -c """
@@ -28,11 +28,11 @@ echo '
 ####CUSTOM_SETUP_START
 
 xwiki.authentication.authclass=com.xwiki.authentication.saml.XWikiSAML20Authenticator
-xwiki.authentication.saml2.idp.single_sign_on_service.url=$key_cloak_single_sign_on_service
-xwiki.authentication.saml2.idp.entityid=$key_cloak_idp_entity_id
-xwiki.authentication.saml2.sp.entityid=$key_cloak_sp_entity_id
-xwiki.authentication.saml2.idp.x509cert=$key_cloak_certificate
-xwiki.authentication.saml2.sp.assertion_consumer_service.url=$xwiki_url_login
+xwiki.authentication.saml2.idp.single_sign_on_service.url=$KEY_CLOAK_SINGLE_SIGN_ON_SERVICE
+xwiki.authentication.saml2.idp.entityid=$KEY_CLOAK_IDP_ENTITY_ID
+xwiki.authentication.saml2.sp.entityid=$KEY_CLOAK_SP_ENTITY_ID
+xwiki.authentication.saml2.idp.x509cert=$KEY_CLOAK_CERTIFICATE
+xwiki.authentication.saml2.sp.assertion_consumer_service.url=$XWIKI_URL_LOGIN
 
 ####CUSTOM_SETUP_END
 ' >> /usr/local/xwiki/data/xwiki.cfg

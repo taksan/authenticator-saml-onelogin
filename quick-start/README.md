@@ -14,9 +14,10 @@ Requirement  | Minimum version
 Java    | >= 8
 Maven   | >= 3.8
 Docker  | >= 20
+Docker-compose  | >= 1.25
 Curl    | >= 7
 
-Run the following command inside the quick-start folder:
+Run the following commands inside the quick-start folder:
 
 ```sh
 $ chmod +x setup.sh
@@ -30,80 +31,85 @@ $ docker-compose up -d
 + User: admin
 + Password: get the password running the following command:
     ```
-    docker-compose exec nexus cat /nexus-data/admin.password
+    $ docker-compose exec nexus cat /nexus-data/admin.password
     ```
 + Add admin permission to anonymous user.
-    + Go to Administration menu, select User and click over anonymous user.
-        + Add nx-amin role to the annymous user.
+    + Go to the Administration menu, select "Users" on the sidebar and select the anonymous user.
+        + Add `nx-admin` role to the anonymous user and save.
+        + **!! NEVER DO THIS IN PRODUCTION EVER !!**
 
 ![nexus_anonymous](../images/nexus_anonymous.png)
 
-+ Build the extension to populate the repository with the current version.
++ Build the extension from within the project directory to populate the repository with the current version.
 
-```
-mvn clean deploy -DaltDeploymentRepository=repo::default::http://localhost:8081/repository/maven-snapshots
-```
+    ```
+    $ mvn clean deploy -DaltDeploymentRepository=repo::default::http://localhost:8081/repository/maven-snapshots
+    ```
 
-+ Check out the Nexus repository
++ Verify that the plugin was deployed to the local Nexus Repository.
 
 ![nexus_repository](../images/nexus_repository.png)
 
 ## Keycloak
 
 + URL: http://localhost:8090
-+ Login at Console Administration
++ Login at the "Administration Console"
     + User: admin
     + Password: admin
-+ After the instalation is finished, its necessary create the realm in the Keycloak importing configurations:
-    + Keep proposed MyNewRealm name.
-    + Go to Keycloak interface and select the option ```Add realm```.
-    + Import ```realm-export.json``` file from quick-start folder.
-        + Check ```Enable``` option and click over ```Create``` button.  
++ After the installation is finished, it's necessary to create the realm in Keycloak:
+    + Go to Keycloak interface and select the option `Add realm`.
+    + On "Import", select the `realm-export.json` file in the `quick-start` folder.
+    + Keep the proposed `MyNewRealm` name.
+    + Make sure the `Enabled` option is ON and click the `Create` button.  
 
-![keycloak_add_healm](../images/keycloak_add_healm.png)
+![keycloak_add_healm](../images/keycloak_add_realm1.png)
 
-+ Create a new user.
+![keycloak_add_healm](../images/keycloak_add_realm.png)
+
++ On the tab to the left, click Users, then on the right click Add User.
 
 ![keycloak_user](../images/keycloak_user.png)
 
-+ Add password to user
++ On the Credentials tab, add user password.
 
 ![keycloak_user_password](../images/keycloak_user_password.png)
-
-
 
 ## XWiki
 
 + URL: http://localhost:8080
-+ Complete the installations quick-start of XWiki until finished.
++ Complete XWiki's "Distribution Wizard" setup.
 
 ![xwiki_instalation](../images/xwiki_instalation.png)
 
 
 + Run the following command inside the quick-start folder:
-```
-$ ./setup.sh
-```
+    ```
+    $ ./setup.sh
+    ```
 
-+ Next step is go to Administer Wiki menu and Extensions.
-    + Wait for the indexing completed.
++ Login in as the administrator user you created during the "Distribution Wizard".
+    + Open the new Extensions page (with the subtitle "Search for new extensions to add to the wiki.").
     
     ![xwiki_extension_indexing](../images/xwiki_extension_indexing.png)
 
-    + To find the extension, click on the "More" button and then on Advanced search link:
-        + EXTENSION ID: org.xwiki.contrib.authentication:xwiki-authenticator-saml20
+    + To find the extension, click the "More" button and then on "Advanced search".
+    + Fill in these values:
+        + EXTENSION ID: `org.xwiki.contrib.authentication:xwiki-authenticator-saml20`
         + VERSION: 1.0-SNAPSHOT
-    + CLick over the install button and wait until finish the instalation process.
+    + Click "Search".
+    + Click the install button, then "continue", and wait until the installation process is finished.
 
 ![xwiki_extension](../images/xwiki_extension.png)
 
 + Run the following command inside the quick-start folder:
 
-```sh
-docker-compose restart web
-```
+    ```sh
+    $ docker-compose restart web
+    ```
 
-## Undone the quick start
+
+
+## Undo the quick start
 
 ```sh
 $ docker-compose down
@@ -118,52 +124,52 @@ Follow the instructions to set up a complete local environment.
 
 1. Build the project
 
-```sh
-mvn clean install
-```
+    ```sh
+    $ mvn clean install
+    ```
 
-2. Create a folder to store the maven repository files for your wiki. Let's assume for this example it will be in the following place
+2. Create a folder to store the maven repository files for your wiki. Let's assume for this example it will be in the following path.
 
-```sh
-/usr/local/xwiki/data/repo/org/xwiki/contrib/authentication/xwiki-authenticator-saml20/1.0-SNAPSHOT
-```
+    ```sh
+    /usr/local/xwiki/data/repo/org/xwiki/contrib/authentication/xwiki-authenticator-saml20/1.0-SNAPSHOT
+    ```
 
-3. Copy all files from your maven local repo
+3. Copy all plugin files from your maven local repo to the directory created on step 2.
 
-```sh
-$~/.m2/repository/org/xwiki/contrib/authentication/xwiki-authenticator-saml20/1.0-SNAPSHOT
-```
+    ```sh
+    $ ~/.m2/repository/org/xwiki/contrib/authentication/xwiki-authenticator-saml20/1.0-SNAPSHOT
+    ```
 
-to the directory created on step 2.
+4. Add the following lines to `xwiki.properties`.
 
-4. Add the following lines to xwiki.properties
+    ```sh
+    extension.repositories=local:maven:file:///usr/local/xwiki/data/repo
+    extension.repositories=maven-xwiki:maven:https://nexus.xwiki.org/nexus/content/groups/public/
+    extension.repositories=extensions.xwiki.org:xwiki:https://extensions.xwiki.org/xwiki/rest/
+    ```
 
-```sh
-extension.repositories=local:maven:file:///usr/local/xwiki/data/repo
-extension.repositories=maven-xwiki:maven:https://nexus.xwiki.org/nexus/content/groups/public/
-extension.repositories=extensions.xwiki.org:xwiki:https://extensions.xwiki.org/xwiki/rest/
-```
-
-5. For Google Workspace, you need to make sure you are behind https. If you are behind a reverse proxy, you might
-face issues with wrong http redirections. Try adding the following to your web.xml 
+**If you are using Google Workspace**, you need to make sure you are behind https. If you are behind a reverse proxy, you might
+face issues with wrong http redirections. Try adding the following to your web.xml.
    
 ```sh
-    <filter>
-        <filter-name>RemoteIpFilter</filter-name>
-        <filter-class>org.apache.catalina.filters.RemoteIpFilter</filter-class>
-        <init-param>
-            <param-name>protocolHeader</param-name>
-            <param-value>x-forwarded-proto</param-value>
-        </init-param>
-       <init-param>
-            <param-name>remoteIpHeader</param-name>
-            <param-value>x-forwarded-for</param-value>
-       </init-param>
-    </filter>
+<filter>
+    <filter-name>RemoteIpFilter</filter-name>
+    <filter-class>org.apache.catalina.filters.RemoteIpFilter</filter-class>
+    <init-param>
+        <param-name>protocolHeader</param-name>
+        <param-value>x-forwarded-proto</param-value>
+    </init-param>
+    <init-param>
+        <param-name>remoteIpHeader</param-name>
+        <param-value>x-forwarded-for</param-value>
+    </init-param>
+</filter>
 ```
 
 == Notice ==
 
 It is still possible to authenticate against the local authentication. To do that, open the login form URL directly:
 
-    https://<your wiki domain>/bin/login/XWiki/XWikiLogin
+```sh
+https://<your wiki domain>/bin/login/XWiki/XWikiLogin
+```

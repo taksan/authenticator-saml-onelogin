@@ -1,6 +1,6 @@
 # Keycloak setup instructions
 
-Follow these instructions to set up Keycloak as the IDP for XWIKI.
+Follow these instructions to set up Keycloak as the IDP for XWiki.
 
 ## Step 1) Create your realm
 + [Follow the instructions in Keycloak documentation.](https://www.keycloak.org/docs/latest/getting_started/#creating-a-realm-and-a-user)
@@ -79,10 +79,10 @@ Go ahead and configure the client settings. Note the following:
 ---
 ## Step 4) Client Mappers
 
-To work with the default configuration, you will need to perform some configurations with attribute mapping.
+To make the bundled XML file work, you will need to perform some configurations with attribute mappings.
 
 + Click over the "Add Builtin" button.
-+ Select all but role list and click over the "Add selected" button.
++ Select all but "role list" and click the "Add selected" button.
 
 ![keycloak_clients_mapper1](images/keycloak_clients_mapper1.png)
 ![keycloak_clients_mapper2](images/keycloak_clients_mapper2.png)
@@ -94,7 +94,7 @@ To work with the default configuration, you will need to perform some configurat
 ![keycloak_clients_mapper_surname](images/keycloak_clients_mapper_surname.png)
 ![keycloak_clients_mapper_email](images/keycloak_clients_mapper_email.png)
 
-+ You can optionally create a group custom field to specify which XWiki groups the user belongs to
++ You can optionally create a group custom field to specify which XWiki groups the user belongs to:
 
 ![keycloak_clients_mapper_group](images/keycloak_clients_mapper_group.png)
 

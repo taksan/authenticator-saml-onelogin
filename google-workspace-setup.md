@@ -1,7 +1,6 @@
 # Google Workspace setup instructions
 
-These instructions are applicable to configure Google Workspace as the IDP for XWiki
-using this plugin.  
+These instructions will guide you while configuring Google Workspace as the IDP for XWiki.
 
 The following configurations are required in the `xwiki.cfg` file.
 

@@ -2,4 +2,5 @@ target
 install-folder
 *-deploy.sh
 .idea
+*.iml
 quick-start/metadata.xml
