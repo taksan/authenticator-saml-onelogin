@@ -1,7 +1,7 @@
-# Quick Start
+# Dev Quick Start
 
-The purpose of this walkthrough is to allow a quick test for this plugin.
-Some docker containers will be used to allow this test:
+The purpose of this guide is to help setting up a development environment for this plugin.
+Some docker containers will be used:
 + Nexus
 + Keycloak
 + Postgres
