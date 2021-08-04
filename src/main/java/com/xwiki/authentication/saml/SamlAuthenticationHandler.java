@@ -82,7 +82,7 @@ public class SamlAuthenticationHandler {
                 return setupAuthenticatedUser(attributes);
             }
 
-            LOG.error(String.format("Saml authentication failed %s", auth.getLastErrorReason()), auth.getLastValidationException());
+            LOG.info(String.format("Saml authentication failed %s", auth.getLastErrorReason()), auth.getLastValidationException());
             return null;
         } catch (com.onelogin.saml2.exception.Error e) {
             LOG.error("Saml authentication failed due to configuration issues", e);
