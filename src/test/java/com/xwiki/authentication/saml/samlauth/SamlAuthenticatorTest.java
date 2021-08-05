@@ -72,7 +72,7 @@ import static org.mockito.Mockito.when;
 
 public class SamlAuthenticatorTest {
     @Test
-    public void whenAnonymousUserAccess_ShouldStartSamlAuthentication() throws XWikiException, IOException, SettingsException, ComponentLookupException {
+    public void whenAnonymousUserAccess_ShouldStartSamlAuthenticationAndRedirectAfterCompletion() throws XWikiException, IOException, SettingsException, ComponentLookupException {
         given()
             .userIsAnonymous()
             .currentRequestUrlIs("https://happy")
